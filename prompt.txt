@@ -1,0 +1,1004 @@
+# BUILDING PASSPORT — MASTER DEVELOPMENT PROMPT
+
+## IMPORTANT — READ THIS FIRST
+
+**DO NOT CREATE AN IMPLEMENTATION PLAN.**
+
+This prompt itself is the implementation plan. Do **not** respond with a plan, checklist, roadmap, suggestions, or explanation of what you are going to do.
+
+**START IMPLEMENTING DIRECTLY.**
+
+We are building this project stage-by-stage. You must implement the current stage completely, test it, inspect the code, fix issues, and make it deploy-ready before considering the stage complete.
+
+Do not jump ahead and implement future-stage functionality unless it is required to keep the architecture ready for future stages.
+
+---
+
+# 1. PROJECT
+
+Project name:
+
+**Building Passport**
+
+Building Passport is a digital identity and lifecycle management platform for buildings.
+
+The concept is similar to a passport for a person, but instead it creates a **digital identity, history, information and condition record for a building**.
+
+The long-term system will contain:
+
+* Building identity
+* Building information
+* Construction details
+* Building plans
+* Building photographs
+* Structural information
+* Builder information
+* Owner information
+* Inspection records
+* Defects
+* Repairs
+* Maintenance history
+* Expected repairs
+* Documents
+* Building health assessment
+* AI-assisted building health/risk prediction
+
+The final product should feel like a **real civil-tech product**, not a college-project website.
+
+---
+
+# 2. DEVELOPMENT APPROACH
+
+The project will be developed in three major stages.
+
+## STAGE 1 — PUBLIC HOMEPAGE / PRODUCT WEBSITE
+
+Build the complete public-facing Building Passport homepage.
+
+This stage should explain the product clearly and create the visual identity of the platform.
+
+The homepage must contain:
+
+* Modern navbar
+* Hero section
+* What is Building Passport?
+* Why Building Passport?
+* How Building Passport works
+* Building Passport lifecycle
+* Example Building Passport
+* Key features
+* Future AI health assessment introduction
+* Strong CTA
+* Footer
+
+There will be **NO AUTHENTICATION in Stage 1**.
+
+Do not create login/signup/authentication screens yet.
+
+---
+
+# 3. STAGE 2 — BUILDING MANAGEMENT
+
+Stage 2 will extend the homepage/application with functionality to add and manage buildings.
+
+A building profile should contain information such as:
+
+### Building Identity
+
+* Building Passport ID
+* Building name
+* Building type
+* Construction date
+* Location
+
+### Building Information
+
+* Total area
+* Number of floors
+* Number of units
+* Building usage
+* Building description
+
+### Building Plan
+
+* Building plan upload
+* Floor plans
+* Structural drawings
+* Other relevant plans/documents
+
+### Building Images
+
+* Main building photograph
+* Additional photographs
+* Construction photographs if available
+
+### Builder Information
+
+* Builder/company name
+* Builder name
+* Builder contact information
+* Construction details
+
+### Owner Information
+
+* Owner name
+* Owner contact number
+* Additional owner information where required
+
+### Maintenance Information
+
+* Recently completed repairs
+* Repair date
+* Repair description
+* Repair cost if applicable
+* Expected repairs
+* Maintenance status
+* Future maintenance requirements
+
+Stage 2 should eventually provide a complete digital Building Passport profile.
+
+---
+
+# 4. STAGE 3 — BUILDING AI HEALTH PREDICTION
+
+Stage 3 will introduce the major intelligent feature of the project:
+
+## Building AI Health Prediction System
+
+The system should eventually analyze available building information such as:
+
+* Building photographs
+* Construction date
+* Building age
+* Building type
+* Structural information
+* Building materials
+* Previous repairs
+* Maintenance history
+* Defect records
+* Inspection information
+* Other available building parameters
+
+The system should provide an **AI-assisted Building Health / Risk Assessment**.
+
+Possible output:
+
+**Building Health Score: 82/100**
+
+And categories such as:
+
+* Structural Condition
+* Maintenance Condition
+* Water Damage Risk
+* Corrosion Risk
+* Repair Priority
+* Overall Risk
+
+It may also provide recommendations such as:
+
+> Recommended inspection: Roof waterproofing and affected structural areas.
+
+This must be treated as an **AI-assisted decision-support system**, not as a replacement for a professional structural engineer.
+
+Do NOT implement Stage 3 now.
+
+Only make the architecture flexible enough that this functionality can be added later.
+
+---
+
+# 5. CURRENT TASK — IMPLEMENT STAGE 1 ONLY
+
+Start building **Stage 1 immediately**.
+
+Do not create an implementation plan first.
+
+Do not ask me unnecessary questions.
+
+Make reasonable professional decisions yourself and start coding.
+
+---
+
+# 6. TECHNOLOGY STACK
+
+Use the following technology direction.
+
+### Frontend
+
+* Next.js
+* React
+* TypeScript
+* Tailwind CSS
+
+Use modern Next.js conventions and keep the application production-ready.
+
+### Backend — future-ready
+
+The planned backend is:
+
+* Node.js
+* Express.js
+
+### Database — future-ready
+
+The planned database is:
+
+* MongoDB
+
+For Stage 1, do not introduce unnecessary backend/database complexity if the homepage does not require it.
+
+The architecture should remain easy to extend with the Node.js/Express backend and MongoDB in Stage 2.
+
+---
+
+# 7. DESIGN DIRECTION
+
+This is extremely important.
+
+The UI must be:
+
+**Minimalistic + Premium + Civil Engineering + Modern Technology**
+
+It should feel like a professional architecture/civil-engineering technology platform.
+
+Do NOT make it look like a generic AI-generated SaaS website.
+
+Avoid:
+
+* Excessive gradients
+* Excessive glassmorphism
+* Random glowing effects
+* Huge unnecessary text
+* Excessive rounded cards
+* Generic AI landing-page patterns
+* Too many colors
+* Unnecessary animations
+* Visual clutter
+* Over-designed dashboards on the homepage
+
+The design should communicate:
+
+**Buildings + Engineering + Trust + Data + Modern Technology**
+
+---
+
+# 8. COLOR PALETTE
+
+Use a refined pale/white-based palette.
+
+The primary visual background should be:
+
+**Pale White / Warm White**
+
+Use subtle supporting colors inspired by architecture and civil engineering:
+
+* Warm white
+* Off-white
+* Soft stone
+* Light concrete grey
+* Charcoal
+* Deep slate
+* Muted architectural blue
+* Very subtle green for health/status
+* Very subtle amber for warnings
+
+Colors should be restrained.
+
+The website should predominantly feel **white, clean, architectural and premium**.
+
+Do not use overly saturated colors.
+
+---
+
+# 9. TYPOGRAPHY
+
+Use a modern, highly readable font system.
+
+Typography should have:
+
+* Strong but elegant headings
+* Comfortable body text
+* Clear hierarchy
+* Good spacing
+* Professional technical appearance
+
+Do not use unnecessarily futuristic fonts.
+
+The website should look like a serious engineering product.
+
+---
+
+# 10. NAVBAR
+
+Create a clean responsive navbar.
+
+Brand:
+
+**Building Passport**
+
+Possible navigation:
+
+* Home
+* What is Building Passport?
+* How It Works
+* Features
+* Example
+* About
+
+Right side:
+
+**Explore Building Passport**
+
+or another suitable CTA.
+
+The navbar should be:
+
+* Minimal
+* Sticky if appropriate
+* Responsive
+* Mobile-friendly
+* Smooth
+* Easy to navigate
+
+On mobile, use a clean mobile navigation menu.
+
+Do not overcrowd the navbar.
+
+---
+
+# 11. HERO SECTION
+
+The hero section is the most important part of Stage 1.
+
+It should immediately communicate:
+
+### Building Passport
+
+**A Digital Identity for Every Building.**
+
+Create a strong supporting message explaining that Building Passport brings a building's information, history, maintenance and future health into one digital identity.
+
+The hero should visually communicate the relationship between:
+
+**Building → Digital Passport → Building Information**
+
+Possible visual direction:
+
+A sophisticated building/architectural visual combined with a digital passport-style interface.
+
+The hero should NOT look like a generic stock-photo landing page.
+
+Use a clean architectural visual treatment.
+
+Include a primary CTA such as:
+
+**Explore Building Passport**
+
+and a secondary action such as:
+
+**See How It Works**
+
+---
+
+# 12. WHAT IS BUILDING PASSPORT?
+
+Create a section that explains the concept in extremely simple language.
+
+Core idea:
+
+> Just like a passport stores the identity and history of a person, Building Passport stores the identity, information and lifecycle history of a building.
+
+Explain that the platform can eventually contain:
+
+* Building identity
+* Construction information
+* Plans
+* Materials
+* Documents
+* Inspections
+* Defects
+* Repairs
+* Maintenance
+* Health assessment
+
+Make this section visually interesting but minimal.
+
+---
+
+# 13. WHY BUILDING PASSPORT?
+
+Explain the existing problem.
+
+Building information is often:
+
+* Scattered across documents
+* Stored physically
+* Difficult to access
+* Difficult to update
+* Difficult to track over time
+* Lost or disconnected between owners and maintenance teams
+
+Then introduce Building Passport as the solution.
+
+Use a clear:
+
+**Problem → Solution**
+
+visual structure.
+
+---
+
+# 14. HOW IT WORKS
+
+Create a simple visual flow.
+
+Use approximately these seven steps:
+
+### 01 — Register Building
+
+Add basic building details.
+
+↓
+
+### 02 — Create Building Passport
+
+Generate a unique Building Passport ID and QR code.
+
+↓
+
+### 03 — Add Building Information
+
+Add structural, material, plan and document information.
+
+↓
+
+### 04 — Inspection & Defect Recording
+
+Record inspections, defects and observations.
+
+↓
+
+### 05 — Maintenance Management
+
+Track repairs and maintenance history.
+
+↓
+
+### 06 — Health Assessment
+
+Evaluate building condition and risk.
+
+↓
+
+### 07 — Dashboard & Reports
+
+View building information, history, insights and reports.
+
+This should visually match the clean flow-diagram style of the Building Passport project.
+
+---
+
+# 15. BUILDING LIFECYCLE SECTION
+
+Show Building Passport following a building throughout its life.
+
+Example:
+
+**Design**
+
+→
+
+**Construction**
+
+→
+
+**Occupancy**
+
+→
+
+**Inspection**
+
+→
+
+**Maintenance**
+
+→
+
+**Renovation**
+
+→
+
+**Current Condition**
+
+The section should explain that the Building Passport grows with the building.
+
+---
+
+# 16. EXAMPLE BUILDING PASSPORT
+
+Create a beautiful mock/example Building Passport card.
+
+Example:
+
+**Building Passport**
+
+BP-2026-00125
+
+Building Name:
+**Green Heights**
+
+Construction:
+**2018**
+
+Floors:
+**8**
+
+Built-up Area:
+**42,500 sq.ft**
+
+Condition:
+**Good**
+
+Last Inspection:
+**June 2026**
+
+Maintenance:
+**Up to Date**
+
+Show a subtle QR-code visual.
+
+This is a demonstration/mockup only in Stage 1.
+
+Do not build actual building-management functionality yet.
+
+---
+
+# 17. FEATURE SECTION
+
+Introduce the main capabilities of the complete platform.
+
+Use concise feature cards:
+
+### Digital Building Identity
+
+A unique digital identity for every building.
+
+### Complete Building Information
+
+Keep important building data in one place.
+
+### Plans & Documents
+
+Store building plans, reports and certificates.
+
+### Inspection & Defect Tracking
+
+Record inspections and identify building issues.
+
+### Maintenance History
+
+Track repairs and maintenance over time.
+
+### QR-Based Access
+
+Access the building's digital passport quickly.
+
+### Building Health Assessment
+
+Understand the building's current condition.
+
+### AI-Assisted Risk Prediction
+
+Future capability for intelligent building health analysis.
+
+Clearly mark advanced AI functionality as **coming in a future stage**.
+
+---
+
+# 18. AI FUTURE SECTION
+
+Do not implement the AI system now.
+
+Instead, introduce it visually as the future direction of Building Passport.
+
+Heading:
+
+**The Building Passport That Gets Smarter Over Time.**
+
+Explain that a future version can analyze:
+
+* Building photos
+* Construction age
+* Defects
+* Maintenance history
+* Structural information
+* Inspection data
+
+and provide AI-assisted health and risk insights.
+
+This section should create curiosity without pretending the AI functionality already exists.
+
+---
+
+# 19. CALL TO ACTION
+
+End the homepage with a strong but minimal CTA.
+
+Example concept:
+
+**Every building has a history.
+Give it a digital identity.**
+
+CTA:
+
+**Explore Building Passport**
+
+Keep the section visually clean.
+
+---
+
+# 20. FOOTER
+
+Create a professional footer containing:
+
+* Building Passport logo/name
+* Short description
+* Navigation
+* Project information
+* Technology information
+* Copyright
+
+Do not make the footer unnecessarily large.
+
+---
+
+# 21. RESPONSIVE DESIGN
+
+This is mandatory.
+
+The website must work properly on:
+
+* Mobile phones
+* Tablets
+* Laptops
+* Desktop monitors
+* Large screens
+
+Do not simply shrink the desktop UI.
+
+Create proper responsive layouts.
+
+Check:
+
+* Navbar
+* Hero
+* Typography
+* Cards
+* Flow diagrams
+* Images
+* Buttons
+* Spacing
+* Footer
+
+on multiple viewport sizes.
+
+There must be no:
+
+* Horizontal overflow
+* Broken layouts
+* Text clipping
+* Overlapping elements
+* Unusable mobile navigation
+
+---
+
+# 22. ANIMATIONS
+
+Use smooth, purposeful animations.
+
+Examples:
+
+* Hero entrance animation
+* Subtle scroll reveal
+* Card hover interaction
+* Smooth navbar behavior
+* Gentle image movement
+* Micro-interactions on buttons
+* Smooth section transitions
+
+Animations must feel premium.
+
+Do NOT animate everything.
+
+Prioritize:
+
+**Smoothness > quantity of animation**
+
+Use lightweight animations so performance remains excellent.
+
+---
+
+# 23. PERFORMANCE
+
+The website must load quickly.
+
+Prioritize:
+
+* Next.js optimization
+* Optimized images
+* Lazy loading where appropriate
+* Minimal dependencies
+* Efficient components
+* No unnecessary JavaScript
+* No unnecessary API calls
+* No unnecessary re-renders
+
+The website must feel fast even on average mobile devices.
+
+---
+
+# 24. CODE QUALITY
+
+This is extremely important.
+
+Every piece of code must be written carefully.
+
+Follow:
+
+* Clean component structure
+* Reusable components
+* Meaningful naming
+* TypeScript types
+* No unnecessary duplication
+* No dead code
+* No unused imports
+* No unnecessary dependencies
+* No console errors
+* No broken links
+* No placeholder functionality presented as real functionality
+
+### Coding style requirement
+
+If a piece of code can correctly and cleanly be written in one line, **write it in one line.**
+
+Do NOT unnecessarily expand a simple one-line statement into 3–6 lines.
+
+For example, prefer concise code when readability is not harmed.
+
+However, do not sacrifice readability just to reduce line count.
+
+The goal is:
+
+**Clean + concise + professional code.**
+
+---
+
+# 25. COMPONENT ARCHITECTURE
+
+Create reusable components wherever appropriate.
+
+For example:
+
+* Navbar
+* Hero
+* SectionHeading
+* FeatureCard
+* LifecycleTimeline
+* HowItWorks
+* BuildingPassportCard
+* CTA
+* Footer
+
+Do not create hundreds of unnecessary components.
+
+Keep the structure understandable.
+
+---
+
+# 26. ACCESSIBILITY
+
+Ensure:
+
+* Semantic HTML
+* Proper heading hierarchy
+* Accessible buttons
+* Accessible navigation
+* Alt text for meaningful images
+* Keyboard navigation
+* Good contrast
+* Visible focus states
+
+The website should not only look good; it should be properly built.
+
+---
+
+# 27. SEO
+
+Stage 1 should be deploy-ready.
+
+Implement appropriate:
+
+* Page title
+* Meta description
+* Open Graph metadata where appropriate
+* Semantic HTML
+* Favicon/site identity
+* Clean URLs
+
+Use:
+
+**Building Passport**
+
+as the primary product name.
+
+---
+
+# 28. DEPLOYMENT READINESS
+
+The Stage 1 application must be deploy-ready.
+
+Before considering Stage 1 complete:
+
+* Run the application
+* Check for build errors
+* Check TypeScript errors
+* Check lint errors
+* Check browser console
+* Check broken routes
+* Check responsive layouts
+* Check animations
+* Check images
+* Check navigation
+* Check production build
+
+Do not tell me that something is complete without actually checking it.
+
+If something fails:
+
+**Fix it.**
+
+Do not simply report the error.
+
+---
+
+# 29. DO NOT IMPLEMENT AUTHENTICATION YET
+
+There should be **no login/signup/authentication requirement in Stage 1**.
+
+Authentication will be introduced in a later stage.
+
+Do not add:
+
+* Login page
+* Signup page
+* Password reset
+* OAuth
+* JWT authentication flow
+
+unless technically required for some future architecture placeholder.
+
+The current homepage should be publicly accessible.
+
+---
+
+# 30. FUTURE ARCHITECTURE
+
+Keep the project structured so that Stage 2 can later introduce:
+
+**Frontend**
+Next.js / React
+
+↓
+
+**Backend**
+Node.js / Express.js
+
+↓
+
+**Database**
+MongoDB
+
+↓
+
+**File Storage**
+
+↓
+
+**AI/Risk Assessment Service**
+
+Do not over-engineer this now.
+
+---
+
+# 31. DESIGN PHILOSOPHY
+
+The final visual language should communicate:
+
+**Architecture + Civil Engineering + Digital Identity + Data**
+
+Think:
+
+* Architectural drawings
+* Concrete
+* Blueprint references
+* Structural lines
+* Building grids
+* Engineering precision
+* Digital records
+* Clean documentation
+
+But do this subtly.
+
+Do not turn the website into a literal blueprint.
+
+It should remain modern and premium.
+
+---
+
+# 32. FINAL PRODUCT FEEL
+
+When someone opens the website, their first impression should be:
+
+> "This looks like a real professional civil-tech platform."
+
+Not:
+
+> "This looks like an AI-generated college project."
+
+The interface should be:
+
+**Minimal.
+Elegant.
+Fast.
+Professional.
+Architectural.
+Trustworthy.
+Easy to understand.**
+
+---
+
+# 33. STAGE CONTROL
+
+For now:
+
+## IMPLEMENT ONLY STAGE 1.
+
+Do not implement:
+
+* Building creation forms
+* Real building database
+* Owner management
+* Builder management
+* Building plan uploads
+* Repair management
+* Inspection management
+* Real QR building records
+* AI health prediction
+* Authentication
+
+Those belong to future stages.
+
+However, design the Stage 1 UI so these future capabilities can naturally connect to it.
+
+---
+
+# 34. START NOW
+
+Again:
+
+**DO NOT CREATE AN IMPLEMENTATION PLAN.**
+
+**DO NOT EXPLAIN WHAT YOU WILL DO.**
+
+**DO NOT GIVE ME A TODO LIST.**
+
+**DIRECTLY START IMPLEMENTING STAGE 1.**
+
+Build the Building Passport homepage completely.
+
+After implementation, inspect and test the project carefully.
+
+Fix all issues you find.
+
+The final result must be:
+
+**Deploy-ready → Responsive → Fast → Clean → Minimalistic → Premium → Civil-tech focused.**
