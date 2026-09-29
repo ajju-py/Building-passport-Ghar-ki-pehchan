@@ -1,11 +1,25 @@
 "use client";
 
-import { useState } from "react";
-import { QrCode, ShieldCheck, CheckCircle2, Calendar, MapPin, Building2, Ruler, Wrench, FileText, ChevronRight, Share2, Download, Eye, ExternalLink } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { QrCode, ShieldCheck, MapPin, FileText, X } from "lucide-react";
 
 export default function ExamplePassportCard() {
   const [activeTab, setActiveTab] = useState<"overview" | "specs" | "maintenance" | "documents">("overview");
   const [qrModalOpen, setQrModalOpen] = useState(false);
+
+  const closeQrModal = useCallback(() => {
+    setQrModalOpen(false);
+  }, []);
+
+  // Close QR modal on Escape key
+  useEffect(() => {
+    if (!qrModalOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeQrModal();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [qrModalOpen, closeQrModal]);
 
   const passportData = {
     id: "BP-2026-00125",
@@ -48,10 +62,10 @@ export default function ExamplePassportCard() {
             <span>05 // INTERACTIVE DEMONSTRATION</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
-            Example Building Passport Card
+            Example Building Passport
           </h2>
           <p className="mt-4 text-base sm:text-lg text-slate-600 leading-relaxed font-normal">
-            Inspect a live mockup of a fully populated digital Building Passport record.
+            Inspect a live demonstration mockup of an active Building Passport record.
           </p>
         </div>
 
@@ -65,14 +79,14 @@ export default function ExamplePassportCard() {
               {/* Brand & ID */}
               <div>
                 <div className="flex items-center space-x-2 text-xs font-mono text-emerald-400 mb-1">
-                  <ShieldCheck className="w-4 h-4" />
+                  <ShieldCheck className="w-4 h-4" aria-hidden="true" />
                   <span className="uppercase tracking-widest font-bold">DIGITAL CIVIL IDENTITY RECORD</span>
                 </div>
                 <h3 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
                   {passportData.name}
                 </h3>
                 <p className="text-xs font-mono text-slate-400 mt-1 flex items-center space-x-2">
-                  <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                  <MapPin className="w-3.5 h-3.5 text-slate-400" aria-hidden="true" />
                   <span>{passportData.location}</span>
                 </p>
               </div>
@@ -86,17 +100,19 @@ export default function ExamplePassportCard() {
                   </span>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setQrModalOpen(true)}
-                  className="inline-flex items-center space-x-1.5 text-[11px] font-mono bg-emerald-950 text-emerald-300 hover:bg-emerald-900 px-2.5 py-1 rounded border border-emerald-700/60 transition-colors"
+                  className="inline-flex items-center space-x-1.5 text-[11px] font-mono bg-emerald-950 text-emerald-300 hover:bg-emerald-900 px-2.5 py-1 rounded border border-emerald-700/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                  aria-label="Scan or preview QR token modal"
                 >
-                  <QrCode className="w-3.5 h-3.5" />
+                  <QrCode className="w-3.5 h-3.5" aria-hidden="true" />
                   <span>SCAN QR TOKEN</span>
                 </button>
               </div>
 
             </div>
 
-            {/* Quick Metrics Bar required by prompt.txt */}
+            {/* Quick Metrics Bar required by specification */}
             <div className="mt-6 pt-6 border-t border-slate-800 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
               <div className="bg-slate-800/80 p-2.5 rounded border border-slate-700/60">
                 <span className="text-[10px] font-mono text-slate-400 block uppercase">CONSTRUCTION</span>
@@ -104,7 +120,7 @@ export default function ExamplePassportCard() {
               </div>
               <div className="bg-slate-800/80 p-2.5 rounded border border-slate-700/60">
                 <span className="text-[10px] font-mono text-slate-400 block uppercase">FLOORS</span>
-                <span className="font-semibold text-slate-100 font-mono text-sm">{passportData.floors} Floors</span>
+                <span className="font-semibold text-slate-100 font-mono text-sm">{passportData.floors}</span>
               </div>
               <div className="bg-slate-800/80 p-2.5 rounded border border-slate-700/60">
                 <span className="text-[10px] font-mono text-slate-400 block uppercase">BUILT-UP AREA</span>
@@ -115,7 +131,7 @@ export default function ExamplePassportCard() {
                 <span className="font-semibold text-emerald-400 font-mono text-sm">{passportData.condition}</span>
               </div>
               <div className="bg-slate-800/80 p-2.5 rounded border border-slate-700/60">
-                <span className="text-[10px] font-mono text-slate-400 block uppercase">LAST INSPECTED</span>
+                <span className="text-[10px] font-mono text-slate-400 block uppercase">LAST INSPECTION</span>
                 <span className="font-semibold text-slate-100 font-mono text-sm">{passportData.lastInspection}</span>
               </div>
               <div className="bg-slate-800/80 p-2.5 rounded border border-slate-700/60">
@@ -126,59 +142,50 @@ export default function ExamplePassportCard() {
           </div>
 
           {/* Tab Navigation */}
-          <div className="bg-slate-100 border-b border-slate-200 px-6 flex space-x-1 overflow-x-auto">
-            <button
-              onClick={() => setActiveTab("overview")}
-              className={`px-4 py-3 text-xs font-mono font-bold uppercase border-b-2 transition-all whitespace-nowrap ${
-                activeTab === "overview"
-                  ? "border-slate-900 text-slate-900 bg-white"
-                  : "border-transparent text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              01. Passport Summary
-            </button>
-            <button
-              onClick={() => setActiveTab("specs")}
-              className={`px-4 py-3 text-xs font-mono font-bold uppercase border-b-2 transition-all whitespace-nowrap ${
-                activeTab === "specs"
-                  ? "border-slate-900 text-slate-900 bg-white"
-                  : "border-transparent text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              02. Civil Specifications
-            </button>
-            <button
-              onClick={() => setActiveTab("maintenance")}
-              className={`px-4 py-3 text-xs font-mono font-bold uppercase border-b-2 transition-all whitespace-nowrap ${
-                activeTab === "maintenance"
-                  ? "border-slate-900 text-slate-900 bg-white"
-                  : "border-transparent text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              03. Repair & Maintenance Log
-            </button>
-            <button
-              onClick={() => setActiveTab("documents")}
-              className={`px-4 py-3 text-xs font-mono font-bold uppercase border-b-2 transition-all whitespace-nowrap ${
-                activeTab === "documents"
-                  ? "border-slate-900 text-slate-900 bg-white"
-                  : "border-transparent text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              04. Blueprints & Documents
-            </button>
+          <div
+            role="tablist"
+            aria-label="Passport Sections"
+            className="bg-slate-100 border-b border-slate-200 px-6 flex space-x-1 overflow-x-auto"
+          >
+            {[
+              { id: "overview", label: "01. Passport Summary" },
+              { id: "specs", label: "02. Civil Specifications" },
+              { id: "maintenance", label: "03. Repair & Maintenance Log" },
+              { id: "documents", label: "04. Blueprints & Documents" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                role="tab"
+                id={`tab-${tab.id}`}
+                aria-selected={activeTab === tab.id}
+                aria-controls={`panel-${tab.id}`}
+                onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                className={`px-4 py-3 text-xs font-mono font-bold uppercase border-b-2 transition-all whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
+                  activeTab === tab.id
+                    ? "border-slate-900 text-slate-900 bg-white"
+                    : "border-transparent text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
 
           {/* Tab Content Area */}
           <div className="p-6 sm:p-8">
             {activeTab === "overview" && (
-              <div className="space-y-6">
+              <div
+                role="tabpanel"
+                id="panel-overview"
+                aria-labelledby="tab-overview"
+                className="space-y-6"
+              >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                    <h4 className="text-xs font-mono font-bold uppercase text-slate-500 mb-3">BUILDER & OWNER ENTITIES</h4>
+                    <h4 className="text-xs font-mono font-bold uppercase text-slate-500 mb-3">BUILDER &amp; OWNER ENTITIES</h4>
                     <div className="space-y-2 text-xs">
                       <div className="flex justify-between py-1 border-b border-slate-200/60">
-                        <span className="text-slate-500">Builder Company:</span>
+                        <span className="text-slate-500">Builder:</span>
                         <span className="font-semibold text-slate-900 text-right">{passportData.builder}</span>
                       </div>
                       <div className="flex justify-between py-1 border-b border-slate-200/60">
@@ -201,22 +208,23 @@ export default function ExamplePassportCard() {
                       </span>
                     </div>
                     <p className="text-xs text-slate-500 leading-relaxed">
-                      Building demonstrates zero active critical defects. Minor cosmetic paint maintenance recommended in basement parking sector B.
+                      Building demonstrates zero active critical defects. Routine facade sealant recoating scheduled for upcoming maintenance cycle.
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between bg-slate-900 text-white p-4 rounded-lg">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-slate-900 text-white p-4 rounded-lg gap-3">
                   <div className="flex items-center space-x-3">
-                    <QrCode className="w-6 h-6 text-emerald-400" />
+                    <QrCode className="w-6 h-6 text-emerald-400 shrink-0" aria-hidden="true" />
                     <div>
                       <div className="text-xs font-bold font-mono">SCANNABLE CIVIL PASSPORT TAG ATTACHED</div>
                       <div className="text-[11px] text-slate-300">Physical QR plate mounted at main structural entrance</div>
                     </div>
                   </div>
                   <button
+                    type="button"
                     onClick={() => setQrModalOpen(true)}
-                    className="text-xs font-mono uppercase bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded transition-colors"
+                    className="text-xs font-mono uppercase bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded transition-colors self-end sm:self-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                   >
                     PREVIEW PLATE
                   </button>
@@ -225,21 +233,26 @@ export default function ExamplePassportCard() {
             )}
 
             {activeTab === "specs" && (
-              <div className="space-y-4">
+              <div
+                role="tabpanel"
+                id="panel-specs"
+                aria-labelledby="tab-specs"
+                className="space-y-4"
+              >
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                   <div className="bg-slate-50 p-4 rounded border border-slate-200">
                     <span className="text-[10px] font-mono text-slate-400 block uppercase">STRUCTURAL FRAME</span>
                     <span className="font-bold text-slate-900 text-sm block mt-1">{passportData.structuralType}</span>
-                    <span className="text-slate-500 text-[11px] mt-1 block">Designed to withstand Seismic Zone IV limits</span>
+                    <span className="text-slate-500 text-[11px] mt-1 block">Designed to withstand Seismic Zone IV parameters</span>
                   </div>
                   <div className="bg-slate-50 p-4 rounded border border-slate-200">
-                    <span className="text-[10px] font-mono text-slate-400 block uppercase">FOUNDATION TECH</span>
+                    <span className="text-[10px] font-mono text-slate-400 block uppercase">FOUNDATION SPECIFICATION</span>
                     <span className="font-bold text-slate-900 text-sm block mt-1">{passportData.foundation}</span>
                     <span className="text-slate-500 text-[11px] mt-1 block">Depth: 18.5 meters below ground level</span>
                   </div>
                   <div className="bg-slate-50 p-4 rounded border border-slate-200">
                     <span className="text-[10px] font-mono text-slate-400 block uppercase">EXTERIOR CLADDING</span>
-                    <span className="font-bold text-slate-900 text-sm block mt-1">Double Glazed Curtain Wall & Terracotta</span>
+                    <span className="font-bold text-slate-900 text-sm block mt-1">Double Glazed Curtain Wall &amp; Terracotta</span>
                     <span className="text-slate-500 text-[11px] mt-1 block">Thermal transmittance U-value: 1.4 W/m²K</span>
                   </div>
                   <div className="bg-slate-50 p-4 rounded border border-slate-200">
@@ -252,10 +265,15 @@ export default function ExamplePassportCard() {
             )}
 
             {activeTab === "maintenance" && (
-              <div className="space-y-3">
+              <div
+                role="tabpanel"
+                id="panel-maintenance"
+                aria-labelledby="tab-maintenance"
+                className="space-y-3"
+              >
                 <h4 className="text-xs font-mono font-bold uppercase text-slate-500 mb-2">CHRONOLOGICAL AUDIT TRAIL</h4>
-                {repairs.map((item, idx) => (
-                  <div key={idx} className="bg-slate-50 p-3.5 rounded border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                {repairs.map((item) => (
+                  <div key={item.date} className="bg-slate-50 p-3.5 rounded border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                     <div>
                       <div className="flex items-center space-x-2">
                         <span className="font-bold text-slate-900">{item.type}</span>
@@ -275,19 +293,24 @@ export default function ExamplePassportCard() {
             )}
 
             {activeTab === "documents" && (
-              <div className="space-y-3">
+              <div
+                role="tabpanel"
+                id="panel-documents"
+                aria-labelledby="tab-documents"
+                className="space-y-3"
+              >
                 <h4 className="text-xs font-mono font-bold uppercase text-slate-500 mb-2">VERIFIED ATTACHED ARCHIVE</h4>
-                {documents.map((doc, idx) => (
-                  <div key={idx} className="bg-slate-50 p-3 rounded border border-slate-200 flex items-center justify-between text-xs">
+                {documents.map((doc) => (
+                  <div key={doc.name} className="bg-slate-50 p-3 rounded border border-slate-200 flex items-center justify-between text-xs">
                     <div className="flex items-center space-x-3">
-                      <FileText className="w-4 h-4 text-slate-600 shrink-0" />
+                      <FileText className="w-4 h-4 text-slate-600 shrink-0" aria-hidden="true" />
                       <div>
                         <div className="font-bold text-slate-900">{doc.name}</div>
                         <div className="font-mono text-[10px] text-slate-400">{doc.format} • {doc.size} • Uploaded {doc.date}</div>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <span className="font-mono text-[10px] bg-slate-200 text-slate-700 px-2 py-1 rounded">VERIFIED HASH</span>
+                      <span className="font-mono text-[10px] bg-slate-200 text-slate-700 px-2 py-1 rounded">VERIFIED RECORD</span>
                     </div>
                   </div>
                 ))}
@@ -296,9 +319,9 @@ export default function ExamplePassportCard() {
           </div>
 
           {/* Footer Note */}
-          <div className="bg-slate-50 px-6 py-3 border-t border-slate-200 text-[11px] font-mono text-slate-500 flex items-center justify-between">
-            <span>MOCKUP PREVIEW // STAGE 1 HOMEPAGE DEMO</span>
-            <span className="text-slate-700">STAGE 2 WILL ENABLE LIVE PASSPORT GENERATION</span>
+          <div className="bg-slate-50 px-6 py-3 border-t border-slate-200 text-[11px] font-mono text-slate-500 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
+            <span>DEMONSTRATION RECORD // STAGE 1 HOMEPAGE SPECIFICATION</span>
+            <span className="text-slate-700">NOT CONNECTED TO A LIVE BACKEND DATABASE</span>
           </div>
 
         </div>
@@ -307,16 +330,35 @@ export default function ExamplePassportCard() {
 
       {/* QR Code Modal Mockup */}
       {qrModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-300 rounded-xl max-w-sm w-full p-6 text-center shadow-xl relative animate-in fade-in zoom-in duration-150">
-            <h3 className="text-base font-bold text-slate-900 uppercase font-mono mb-1">PHYSICAL PASSPORT TAG</h3>
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="qr-modal-title"
+          onClick={closeQrModal}
+          className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white border border-slate-300 rounded-xl max-w-sm w-full p-6 text-center shadow-xl relative animate-in zoom-in-95 duration-150"
+          >
+            <button
+              type="button"
+              onClick={closeQrModal}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+              aria-label="Close modal"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <h3 id="qr-modal-title" className="text-base font-bold text-slate-900 uppercase font-mono mb-1">
+              Physical Passport Tag
+            </h3>
             <p className="text-xs text-slate-500 mb-4">Mountable QR identity plate for building entrance</p>
             
             {/* Visual QR Code box */}
             <div className="bg-slate-900 p-6 rounded-lg border border-slate-800 inline-block mb-4">
               <div className="w-36 h-36 bg-white p-2 rounded flex flex-col items-center justify-center relative">
-                {/* Clean CSS SVG scannable QR simulation */}
-                <QrCode className="w-32 h-32 text-slate-900" />
+                <QrCode className="w-32 h-32 text-slate-900" aria-label="QR Code demonstration representing BP-2026-00125" />
               </div>
               <div className="mt-3 text-[11px] font-mono font-bold text-emerald-400">
                 BP-2026-00125
@@ -325,13 +367,14 @@ export default function ExamplePassportCard() {
 
             <div className="text-[11px] text-slate-600 bg-slate-100 p-2.5 rounded border border-slate-200 font-mono mb-4 text-left">
               <div>BUILDING: Green Heights</div>
-              <div>LOCATION: Sector 4, Civil District</div>
-              <div>VERIFIED BY: Building Passport OS</div>
+              <div>LOCATION: 425 Skyline Avenue, Sector 4</div>
+              <div>CLASSIFICATION: Demonstration Record</div>
             </div>
 
             <button
-              onClick={() => setQrModalOpen(false)}
-              className="w-full text-xs font-mono font-bold uppercase bg-slate-900 hover:bg-slate-800 text-white py-2.5 rounded transition-colors"
+              type="button"
+              onClick={closeQrModal}
+              className="w-full text-xs font-mono font-bold uppercase bg-slate-900 hover:bg-slate-800 text-white py-2.5 rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
             >
               CLOSE PREVIEW
             </button>
@@ -342,3 +385,4 @@ export default function ExamplePassportCard() {
     </section>
   );
 }
+

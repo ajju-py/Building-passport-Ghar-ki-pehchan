@@ -9,10 +9,10 @@ export default function CTASection() {
         
         <div className="arch-card p-8 sm:p-12 md:p-16 rounded-2xl bg-white text-center relative overflow-hidden shadow-sm border border-slate-300">
           {/* Subtle architectural background tag */}
-          <div className="absolute top-4 left-6 text-[10px] font-mono text-slate-400 select-none">
-            + DEPLOYMENT_STAGE: STAGE_1_PROTOTYPE
+          <div className="absolute top-4 left-6 text-[10px] font-mono text-slate-500 select-none hidden sm:block" aria-hidden="true">
+            + SPEC_STAGE: STAGE_1_PUBLIC
           </div>
-          <div className="absolute top-4 right-6 text-[10px] font-mono text-slate-400 select-none">
+          <div className="absolute top-4 right-6 text-[10px] font-mono text-slate-500 select-none hidden sm:block" aria-hidden="true">
             REF: ISO_19650_STANDARD
           </div>
 
@@ -32,20 +32,20 @@ export default function CTASection() {
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
             <a
               href="#sample-record"
-              className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 text-xs font-semibold uppercase tracking-wider text-white bg-slate-900 hover:bg-slate-800 px-8 py-4 rounded-md border border-slate-900 transition-all shadow-sm"
+              className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 text-xs font-semibold uppercase tracking-wider text-white bg-slate-900 hover:bg-slate-800 px-8 py-4 rounded-md border border-slate-900 transition-all shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
             >
               <span>Explore Building Passport</span>
               <ArrowRight className="w-4 h-4 text-slate-300" />
             </a>
           </div>
 
-          <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-center space-x-6 text-xs text-slate-500 font-mono">
+          <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-center space-x-6 text-xs text-slate-600 font-mono">
             <span className="flex items-center space-x-1.5">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <ShieldCheck className="w-4 h-4 text-emerald-600" aria-hidden="true" />
               <span>Zero-bloat civil data architecture</span>
             </span>
-            <span className="hidden sm:inline text-slate-300">•</span>
-            <span className="hidden sm:inline">Future ready for Express / MongoDB</span>
+            <span className="hidden sm:inline text-slate-300" aria-hidden="true">•</span>
+            <span className="hidden sm:inline">Stage 1 Public Specification</span>
           </div>
         </div>
 

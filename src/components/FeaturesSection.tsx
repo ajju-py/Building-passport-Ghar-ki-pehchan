@@ -1,63 +1,72 @@
 "use client";
 
-import { ShieldCheck, Database, FileText, AlertTriangle, History, QrCode, Activity, Sparkles, Lock, Check } from "lucide-react";
+import {
+  ShieldCheck,
+  Database,
+  FileText,
+  AlertTriangle,
+  History,
+  QrCode,
+  Activity,
+  Sparkles,
+} from "lucide-react";
 
 export default function FeaturesSection() {
   const features = [
     {
       title: "Digital Building Identity",
-      desc: "Assigns a permanent, cryptographically verifiable civil identity and unique ID to every registered structure.",
+      desc: "A unique digital identity for every building. Assigns an immutable, cryptographically verifiable civil record ID.",
       icon: ShieldCheck,
       stage: "Stage 1 Platform",
       future: false,
     },
     {
       title: "Complete Building Information",
-      desc: "Consolidates builder specifications, floor areas, structural frame types, foundation engineering, and owner registries.",
+      desc: "Keep important building information together. Consolidate structural materials, foundation specs, and entity registries.",
       icon: Database,
       stage: "Stage 2 Ready",
       future: false,
     },
     {
-      title: "Plans & Document Storage",
-      desc: "Securely archives CAD blueprints, structural calculations, occupancy permits, and compliance certificates.",
+      title: "Plans & Documents",
+      desc: "Store plans, reports and certificates. Securely catalog CAD/BIM blueprints, fire permits, and occupancy records.",
       icon: FileText,
       stage: "Stage 2 Ready",
       future: false,
     },
     {
       title: "Inspection & Defect Tracking",
-      desc: "Enables civil engineers to geotag photos, classify defects, assign severity metrics, and monitor crack progression.",
+      desc: "Record inspections and building issues. Civil engineers log observations, defect photos, and monitor crack progression.",
       icon: AlertTriangle,
       stage: "Stage 2 Ready",
       future: false,
     },
     {
       title: "Maintenance History",
-      desc: "Maintains a chronological record of all completed repairs, waterproofing updates, equipment servicing, and costs.",
+      desc: "Track repairs and maintenance over time. Permanent chronological ledger of contractor repairs and scheduled servicing.",
       icon: History,
       stage: "Stage 2 Ready",
       future: false,
     },
     {
-      title: "QR-Based Instant Access",
-      desc: "Mountable physical QR tags allow inspectors, buyers, and fire safety officers to scan and view authorized building records.",
+      title: "QR-Based Access",
+      desc: "Quickly access a building passport. On-site scannable entrance plates provide authorized civil verification in seconds.",
       icon: QrCode,
       stage: "Stage 1 Spec",
       future: false,
     },
     {
       title: "Building Health Assessment",
-      desc: "Aggregates audit logs and maintenance freshness into an objective condition score and health breakdown.",
+      desc: "Understand current building condition. Synthesize audit logs and maintenance freshness into an objective health score.",
       icon: Activity,
       stage: "Stage 2 Ready",
       future: false,
     },
     {
       title: "AI-Assisted Risk Prediction",
-      desc: "Intelligent neural analysis of material aging curves, defect propagation, and historical repair patterns.",
+      desc: "Future intelligent building-health analysis. Evaluates material degradation curves, thermal scans, and defect patterns.",
       icon: Sparkles,
-      stage: "Coming in Stage 3",
+      stage: "Coming in a future stage",
       future: true,
     },
   ];
@@ -72,10 +81,10 @@ export default function FeaturesSection() {
             <span>06 // SYSTEM CAPABILITIES</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
-            Key Platform Capabilities
+            Key Features
           </h2>
           <p className="mt-4 text-base sm:text-lg text-slate-600 leading-relaxed font-normal">
-            Engineered specifically for structural longevity, civil transparency, and lifecycle data retention.
+            Eight core capabilities engineered for civil documentation integrity, structural longevity, and lifecycle transparency.
           </p>
         </div>
 
@@ -85,7 +94,7 @@ export default function FeaturesSection() {
             const Icon = feat.icon;
             return (
               <div
-                key={idx}
+                key={feat.title}
                 className={`arch-card p-6 rounded-xl flex flex-col justify-between relative transition-all ${
                   feat.future ? "bg-slate-900 text-white border-slate-800" : "bg-white text-slate-900"
                 }`}
@@ -100,7 +109,7 @@ export default function FeaturesSection() {
                           : "bg-slate-100 text-slate-900 border-slate-200"
                       }`}
                     >
-                      <Icon className="w-5 h-5" />
+                      <Icon className="w-5 h-5" aria-hidden="true" />
                     </div>
                     <span
                       className={`text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded border ${
@@ -130,8 +139,8 @@ export default function FeaturesSection() {
                   <span>FEATURE 0{idx + 1}</span>
                   {feat.future ? (
                     <span className="text-emerald-400 font-semibold flex items-center space-x-1">
-                      <Sparkles className="w-3 h-3" />
-                      <span>FUTURE AI STAGE</span>
+                      <Sparkles className="w-3 h-3" aria-hidden="true" />
+                      <span>FUTURE CAPABILITY</span>
                     </span>
                   ) : (
                     <span className="text-slate-700 font-medium">CORE SPEC</span>
@@ -146,3 +155,4 @@ export default function FeaturesSection() {
     </section>
   );
 }
+
