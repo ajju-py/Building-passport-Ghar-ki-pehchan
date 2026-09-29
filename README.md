@@ -37,15 +37,27 @@ The project is structured into three major development stages:
   - Impactful CTA & civil stack footer
 - **Authentication**: *None in Stage 1.* Publicly accessible landing product.
 
-### Stage 2 — Building Profile & Record Management `[PLANNED]`
-- **Objective**: Introduce backend data persistence and user management to create and manage live building passports.
-- **Planned Functionality**:
-  - Building registration forms & automated QR token generation
-  - Architectural blueprint & PDF document uploads
-  - Builder, developer & owner profile links
-  - Interactive maintenance log input & cost ledger
-  - Node.js + Express.js API backend integration
-  - MongoDB database schemas for civil records
+### Stage 2 — Building Profile & Record Management `[COMPLETED & VERIFIED]`
+- **Objective**: Civil building management platform with full persistence, JWT authentication, role authorization, QR passport generation, and document registry.
+- **Implemented Capabilities**:
+  - **Civil Auth & RBAC**: JWT auth with bcrypt password hashing across 4 distinct roles:
+    - `admin` (Urban Authority / Superuser): full system oversight
+    - `engineer` (Certified Structural Inspector): inspection & defect certification
+    - `owner` (Property Owner / Facility Manager): building registration & maintenance logging
+    - `public` (Public Citizen / Buyer / Tenant): read-only access to sanitized public passports
+  - **Dual-Mode Persistence Architecture**: Mongoose database layer connecting to live MongoDB with automated high-fidelity in-memory civil repository fallback when a local MongoDB daemon is not running.
+  - **Dynamic QR Code Generation**: Scannable high-resolution QR passport tokens with official civil branding, resolving to `/public/building/[passportId]`.
+  - **Strict Public vs. Private Separation**: Public QR verification masks owner contact numbers, personal identification, and proprietary engineering blueprints.
+  - **Multi-Tab Building Profile**:
+    - Structural parameters (concrete grade, foundation, seismic zone, framing)
+    - Certified inspection records with inspector timestamps
+    - Defect log with severity levels (Low, Medium, High, Critical) and status tracking
+    - Maintenance history and cumulative expenditure ledger
+    - Architectural blueprints & municipal permits registry (`uploads/`)
+    - Photo registry with categorised visual inspections
+    - High-res digital QR passport plate
+    - Printable official civil dossier report
+  - **Dual API Support**: Runs both as integrated Next.js App Router API (`http://localhost:3000/api`) and standalone Express.js backend service (`http://localhost:5000/api`).
 
 ### Stage 3 — Building AI Health Prediction System `[PLANNED]`
 - **Objective**: Intelligent decision-support engine for structural longevity and proactive risk detection.
@@ -129,10 +141,24 @@ Building passport/
 
 ### Available Scripts
 
-- `npm run dev`: Starts the Next.js development server on port 3000.
-- `npm run build`: Compiles the optimized production build.
-- `npm start`: Starts the production server.
+- `npm run dev`: Starts the Next.js development server on port 3000 (front-end + App Router API routes).
+- `npm run server`: Starts the standalone Express.js civil backend API on port 5000 (`http://localhost:5000`).
+- `npm run build`: Compiles the optimized Next.js production build and typechecks all routes.
+- `npm start`: Starts the Next.js production server.
 - `npm run lint`: Runs ESLint checks across the codebase.
+
+---
+
+### 🔑 Test & Demo Credentials
+
+Four pre-configured role profiles are accessible via 1-click test buttons on `/login` or manual entry:
+
+| Role | Email | Password | Permissions |
+| :--- | :--- | :--- | :--- |
+| **Municipal Administrator** | `admin@civic.gov.in` | `Admin@2026!` | Full oversight, building registration, inspections, defects, maintenance, blueprints |
+| **Structural Engineer** | `engineer@cpwd.gov.in` | `Engineer@2026!` | Log certified inspections, record defects, update defect remediation status |
+| **Property Owner** | `owner@apexresidences.in` | `Owner@2026!` | Register building assets, record maintenance expenditure & contractor receipts |
+| **Public Verifier** | `public@citizen.in` | `Public@2026!` | View public civil passports, QR scanning (sanitized private data) |
 
 ---
 
