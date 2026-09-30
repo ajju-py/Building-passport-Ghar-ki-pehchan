@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { DefectService } from "@/server/services/defect.service";
+import { BuildingService } from "@/server/services/building.service";
 import { enforceAuth } from "@/server/helpers/nextAuth";
 import { defectCreateSchema } from "@/server/middlewares/validation.middleware";
 
@@ -36,6 +37,14 @@ export async function POST(
 
   try {
     const { id } = await params;
+    const access = await BuildingService.checkBuildingModificationAccess(id, session);
+    if (!access.allowed) {
+      return NextResponse.json(
+        { success: false, error: access.message },
+        { status: access.status }
+      );
+    }
+
     const body = await req.json();
     const validated = defectCreateSchema.safeParse(body);
     if (!validated.success) {

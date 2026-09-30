@@ -5,7 +5,7 @@ export const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(100),
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  role: z.enum(["admin", "engineer", "owner", "public"]).optional(),
+  role: z.enum(["owner", "public"]).optional(),
 });
 
 export const loginSchema = z.object({
@@ -70,25 +70,35 @@ export const inspectionCreateSchema = z.object({
 });
 
 export const defectCreateSchema = z.object({
-  inspectionId: z.string().optional(),
+  inspectionId: z.string().nullable().optional(),
   category: z.string().min(2, "Defect category is required"),
   location: z.string().min(2, "Defect location is required"),
   severity: z.enum(["Low", "Medium", "High", "Critical"]),
   status: z.enum(["Open", "In Review", "Remediated", "Closed"]).optional(),
   details: z.string().min(5, "Defect description is required"),
-  imageRef: z.string().optional(),
+  imageRef: z.string().nullable().optional(),
+});
+
+export const defectUpdateSchema = z.object({
+  inspectionId: z.string().nullable().optional(),
+  category: z.string().min(2, "Defect category must be at least 2 characters").optional(),
+  location: z.string().min(2, "Defect location must be at least 2 characters").optional(),
+  severity: z.enum(["Low", "Medium", "High", "Critical"]).optional(),
+  status: z.enum(["Open", "In Review", "Remediated", "Closed"]).optional(),
+  details: z.string().min(5, "Defect description must be at least 5 characters").optional(),
+  imageRef: z.string().nullable().optional(),
 });
 
 export const maintenanceCreateSchema = z.object({
   repairType: z.string().min(2, "Repair type is required"),
   repairDate: z.string().min(4, "Repair date is required"),
   description: z.string().min(5, "Repair description is required"),
-  cost: z.number().min(0, "Cost must be a positive number"),
+  cost: z.number().finite("Cost must be a finite number").min(0, "Cost must be a positive number"),
   status: z.enum(["Scheduled", "In Progress", "Completed", "Deferred"]).optional(),
   contractor: z.string().min(2, "Contractor/service provider is required"),
-  warrantyDetails: z.string().optional(),
-  expectedRepairs: z.string().optional(),
-  futureRequirements: z.string().optional(),
+  warrantyDetails: z.string().nullable().optional(),
+  expectedRepairs: z.string().nullable().optional(),
+  futureRequirements: z.string().nullable().optional(),
 });
 
 export function validateBody<T>(schema: z.ZodSchema<T>) {

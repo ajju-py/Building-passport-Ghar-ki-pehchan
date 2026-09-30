@@ -1,39 +1,33 @@
-import { BuildingRecord, BuildingReport, UserSession } from "@/lib/types";
-import { connectDb, isDbConnected } from "../db";
-import { BuildingModel } from "../models/Building";
+import { BuildingRecord, BuildingReport, UserSession, BuildingPhotograph, UserRole } from "@/lib/types";
+import { query, getPostgresClient } from "../db/postgres";
 import { QrService } from "./qr.service";
 import {
-  initialSeedBuildings,
-  initialSeedInspections,
-  initialSeedDefects,
-  initialSeedMaintenance,
-  initialSeedDocuments,
-} from "../data/seedData";
+  BuildingDbRow,
+  PhotographDbRow,
+  InspectionDbRow,
+  DefectDbRow,
+  MaintenanceDbRow,
+  DocumentDbRow,
+  mapBuildingRow,
+  mapPhotographRow,
+  mapInspectionRow,
+  mapDefectRow,
+  mapMaintenanceRow,
+  mapDocumentRow,
+} from "../db/mappers";
 
-// In-memory collections initialized with seed data
-const memoryBuildings: BuildingRecord[] = [...initialSeedBuildings];
-const memoryInspections = [...initialSeedInspections];
-const memoryDefects = [...initialSeedDefects];
-const memoryMaintenance = [...initialSeedMaintenance];
-const memoryDocuments = [...initialSeedDocuments];
-
-// Initialize QR codes for seed buildings asynchronously
-(async () => {
-  for (const b of memoryBuildings) {
-    if (!b.qrCodeDataUrl) {
-      try {
-        b.qrCodeDataUrl = await QrService.generatePassportQr(b.passportId);
-      } catch {
-        // Fallback
-      }
-    }
-  }
-})();
+// Temporary export stubs to maintain compatibility with sibling services during incremental migration
+export const memoryBuildings: BuildingRecord[] = [];
+export const memoryInspections: unknown[] = [];
+export const memoryDefects: unknown[] = [];
+export const memoryMaintenance: unknown[] = [];
+export const memoryDocuments: unknown[] = [];
 
 export class BuildingService {
   /**
    * Generates a unique, standardized Building Passport ID in the civil registry format:
    * BP-YYYY-XXXXX (e.g., BP-2026-48201)
+   * Guaranteed unique via PostgreSQL verification.
    */
   public static async generateUniquePassportId(): Promise<string> {
     const year = new Date().getFullYear();
@@ -46,19 +40,11 @@ export class BuildingService {
       const randomNum = Math.floor(10000 + Math.random() * 90000);
       candidate = `BP-${year}-${randomNum}`;
 
-      // Check DB
-      let existsInDb = false;
-      try {
-        if (isDbConnected() || (await connectDb().catch(() => null))) {
-          const found = await BuildingModel.findOne({ passportId: candidate });
-          if (found) existsInDb = true;
-        }
-      } catch {
-        // Ignore
-      }
-
-      const existsInMem = memoryBuildings.some((b) => b.passportId === candidate);
-      if (!existsInDb && !existsInMem) {
+      const res = await query<{ count: number }>(
+        "SELECT count(*)::int as count FROM buildings WHERE passport_id = $1;",
+        [candidate]
+      );
+      if (res.rows[0].count === 0) {
         isUnique = true;
       }
     }
@@ -67,126 +53,178 @@ export class BuildingService {
   }
 
   /**
-   * Maps a Mongoose document or plain object to a clean BuildingRecord
+   * Fetches photographs for a set of building IDs.
    */
-  private static mapToRecord(doc: Record<string, unknown>): BuildingRecord {
-    const docAny = doc as unknown as BuildingRecord & { _id?: { toString(): string } };
-    return {
-      id: docAny._id ? docAny._id.toString() : docAny.id,
-      passportId: docAny.passportId,
-      name: docAny.name,
-      type: docAny.type,
-      constructionDate: docAny.constructionDate,
-      location: docAny.location || { address: "", city: "" },
-      totalArea: docAny.totalArea,
-      floors: docAny.floors,
-      units: docAny.units,
-      usage: docAny.usage,
-      description: docAny.description || "",
-      structuralInfo: docAny.structuralInfo || {
-        frameType: "RCC",
-        foundation: "Piles",
-        fireRating: "2-Hour",
-        exteriorCladding: "Standard",
-      },
-      builder: docAny.builder || {
-        companyName: "Unspecified",
-        builderName: "Unspecified",
-        contact: "",
-        details: "",
-      },
-      owner: docAny.owner,
-      qrCodeDataUrl: docAny.qrCodeDataUrl || "",
-      photographs: docAny.photographs || [],
-      condition: docAny.condition || "Good",
-      maintenanceStatus: docAny.maintenanceStatus || "Up to Date",
-      createdBy: docAny.createdBy?.toString(),
-      createdAt: docAny.createdAt ? new Date(String(docAny.createdAt)).toISOString() : new Date().toISOString(),
-      updatedAt: docAny.updatedAt ? new Date(String(docAny.updatedAt)).toISOString() : new Date().toISOString(),
-    };
+  private static async getPhotographsForBuildings(
+    buildingIds: string[]
+  ): Promise<Map<string, BuildingPhotograph[]>> {
+    const photoMap = new Map<string, BuildingPhotograph[]>();
+    if (buildingIds.length === 0) return photoMap;
+
+    const res = await query<PhotographDbRow>(
+      `SELECT id, building_id, url, caption, category, is_private, uploaded_at
+       FROM building_photographs
+       WHERE building_id = ANY($1::text[])
+       ORDER BY uploaded_at ASC;`,
+      [buildingIds]
+    );
+
+    for (const row of res.rows) {
+      const bId = row.building_id;
+      if (!photoMap.has(bId)) {
+        photoMap.set(bId, []);
+      }
+      photoMap.get(bId)!.push(mapPhotographRow(row));
+    }
+
+    return photoMap;
   }
 
   /**
-   * Creates a new Building Passport record
+   * Retrieves photographs for a building by ID or Passport ID, with role-based privacy filtering.
+   * Returns null if building does not exist.
+   */
+  public static async getPhotographs(
+    buildingIdOrPassport: string,
+    currentUserOrRole?: { role?: UserRole; userId?: string } | UserRole
+  ): Promise<BuildingPhotograph[] | null> {
+    const building = await this.getBuildingById(buildingIdOrPassport);
+    if (!building) return null;
+
+    const userRole = typeof currentUserOrRole === "string" ? currentUserOrRole : currentUserOrRole?.role;
+    const userId = typeof currentUserOrRole === "object" ? currentUserOrRole?.userId : undefined;
+
+    const canSeePrivate =
+      userRole === "admin" ||
+      userRole === "engineer" ||
+      (userRole === "owner" && building.createdBy && building.createdBy === userId);
+
+    if (canSeePrivate) {
+      return building.photographs;
+    }
+
+    return building.photographs.filter((p) => !p.isPrivate);
+  }
+
+  /**
+   * Creates a new Building Passport record in PostgreSQL
    */
   public static async createBuilding(
     data: Partial<BuildingRecord>,
     userId?: string
   ): Promise<BuildingRecord> {
-    const passportId = data.passportId?.trim().toUpperCase() || (await this.generateUniquePassportId());
-    const qrCodeDataUrl = await QrService.generatePassportQr(passportId);
+    const passportId =
+      data.passportId?.trim().toUpperCase() || (await this.generateUniquePassportId());
+    const qrCodeDataUrl =
+      data.qrCodeDataUrl || (await QrService.generatePassportQr(passportId));
+    const buildingId =
+      data.id || `bld_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
-    const newBuildingData: Partial<BuildingRecord> = {
-      ...data,
-      passportId,
-      qrCodeDataUrl,
-      condition: data.condition || "Good",
-      maintenanceStatus: data.maintenanceStatus || "Up to Date",
-      photographs: data.photographs || [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    const client = await getPostgresClient();
 
-    // Try MongoDB
     try {
-      if (isDbConnected() || (await connectDb().catch(() => null))) {
-        const created = await BuildingModel.create({
-          ...newBuildingData,
-          createdBy: userId,
-        });
-        const record = this.mapToRecord(created.toObject ? created.toObject() : created);
-        // Also keep memory sync
-        memoryBuildings.unshift(record);
-        return record;
+      await client.query("BEGIN;");
+
+      const insertBuildingSql = `
+        INSERT INTO buildings (
+          id, passport_id, name, type, construction_date,
+          location_address, location_city, location_state, location_postal_code,
+          latitude, longitude, total_area, floors, units, usage, description,
+          frame_type, foundation, fire_rating, exterior_cladding, seismic_zone,
+          builder_company_name, builder_name, builder_contact, builder_details,
+          owner_name, owner_contact, owner_email, owner_additional_info,
+          qr_code_data_url, condition, maintenance_status,
+          created_by, created_at, updated_at
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+          $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
+          $21, $22, $23, $24, $25, $26, $27, $28, $29, $30,
+          $31, $32, $33, NOW(), NOW()
+        )
+        RETURNING *;
+      `;
+
+      const values = [
+        buildingId,
+        passportId,
+        data.name || "Untitled Civil Structure",
+        data.type || "Commercial",
+        data.constructionDate || new Date().toISOString().split("T")[0],
+        data.location?.address || "Registry Location",
+        data.location?.city || "Capital",
+        data.location?.state || null,
+        data.location?.postalCode || null,
+        data.location?.coordinates?.lat ?? null,
+        data.location?.coordinates?.lng ?? null,
+        data.totalArea || "50,000 sq.ft",
+        data.floors || 1,
+        data.units || 1,
+        data.usage || "General",
+        data.description || null,
+        data.structuralInfo?.frameType || "RCC",
+        data.structuralInfo?.foundation || "Standard",
+        data.structuralInfo?.fireRating || "2-Hour",
+        data.structuralInfo?.exteriorCladding || "Plastered",
+        data.structuralInfo?.seismicZone || null,
+        data.builder?.companyName || null,
+        data.builder?.builderName || null,
+        data.builder?.contact || null,
+        data.builder?.details || null,
+        data.owner?.name || null,
+        data.owner?.contact || null,
+        data.owner?.email || null,
+        data.owner?.additionalInfo || null,
+        qrCodeDataUrl,
+        data.condition || "Good",
+        data.maintenanceStatus || "Up to Date",
+        userId || null,
+      ];
+
+      const bldRes = await client.query<BuildingDbRow>(insertBuildingSql, values);
+      const createdRow = bldRes.rows[0];
+
+      // Insert photographs if present
+      const photographs: BuildingPhotograph[] = [];
+      if (Array.isArray(data.photographs) && data.photographs.length > 0) {
+        for (let idx = 0; idx < data.photographs.length; idx++) {
+          const p = data.photographs[idx];
+          const photoId = `photo_${buildingId}_${idx + 1}`;
+          await client.query(
+            `INSERT INTO building_photographs (
+               id, building_id, url, caption, category, is_private, uploaded_at
+             ) VALUES ($1, $2, $3, $4, $5, $6, $7);`,
+            [
+              photoId,
+              buildingId,
+              p.url,
+              p.caption || null,
+              p.category || "additional",
+              Boolean(p.isPrivate),
+              p.uploadedAt ? new Date(p.uploadedAt) : new Date(),
+            ]
+          );
+          photographs.push({
+            url: p.url,
+            caption: p.caption || "",
+            category: p.category || "additional",
+            isPrivate: Boolean(p.isPrivate),
+            uploadedAt: p.uploadedAt ? new Date(p.uploadedAt).toISOString() : new Date().toISOString(),
+          });
+        }
       }
-    } catch (err) {
-      console.warn("[BuildingService] MongoDB create failed, storing in memory:", (err as Error).message);
+
+      await client.query("COMMIT;");
+      return mapBuildingRow(createdRow, photographs);
+    } catch (err: unknown) {
+      await client.query("ROLLBACK;");
+      throw err;
+    } finally {
+      client.release();
     }
-
-    // In-memory fallback
-    const memRecord: BuildingRecord = {
-      id: `bld_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-      passportId,
-      name: data.name || "Untitled Civil Structure",
-      type: data.type || "Commercial",
-      constructionDate: data.constructionDate || new Date().toISOString().split("T")[0],
-      location: data.location || { address: "Registry Location", city: "Capital" },
-      totalArea: data.totalArea || "50,000 sq.ft",
-      floors: data.floors || 1,
-      units: data.units || 1,
-      usage: data.usage || "General",
-      description: data.description || "",
-      structuralInfo: data.structuralInfo || {
-        frameType: "RCC",
-        foundation: "Standard",
-        fireRating: "2-Hour",
-        exteriorCladding: "Plastered",
-      },
-      builder: data.builder || {
-        companyName: "Civil Contractor",
-        builderName: "Engineer in Charge",
-        contact: "",
-        details: "",
-      },
-      owner: data.owner || {
-        name: "Property Holder",
-        contact: "",
-      },
-      qrCodeDataUrl,
-      photographs: data.photographs || [],
-      condition: data.condition || "Good",
-      maintenanceStatus: data.maintenanceStatus || "Up to Date",
-      createdBy: userId,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    memoryBuildings.unshift(memRecord);
-    return memRecord;
   }
 
   /**
-   * Retrieves buildings with search, category filtering, and condition filtering
+   * Retrieves buildings from PostgreSQL with search and filtering
    */
   public static async getBuildings(filters?: {
     search?: string;
@@ -194,173 +232,379 @@ export class BuildingService {
     condition?: string;
     maintenanceStatus?: string;
   }): Promise<BuildingRecord[]> {
-    let results: BuildingRecord[] = [];
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+    let paramIndex = 1;
 
-    try {
-      if (isDbConnected() || (await connectDb().catch(() => null))) {
-        const query: Record<string, unknown> = {};
-        if (filters?.type && filters.type !== "all") {
-          query.type = new RegExp(filters.type, "i");
-        }
-        if (filters?.condition && filters.condition !== "all") {
-          query.condition = filters.condition;
-        }
-        if (filters?.maintenanceStatus && filters.maintenanceStatus !== "all") {
-          query.maintenanceStatus = filters.maintenanceStatus;
-        }
-        if (filters?.search) {
-          const s = filters.search.trim();
-          query.$or = [
-            { name: new RegExp(s, "i") },
-            { passportId: new RegExp(s, "i") },
-            { "location.address": new RegExp(s, "i") },
-            { "location.city": new RegExp(s, "i") },
-          ];
-        }
-
-        const docs = await BuildingModel.find(query).sort({ createdAt: -1 });
-        if (docs.length > 0) {
-          results = docs.map((d) => this.mapToRecord(d.toObject ? d.toObject() : d));
-        }
-      }
-    } catch {
-      // Memory fallback
+    if (filters?.type && filters.type !== "all") {
+      conditions.push(`type ILIKE $${paramIndex++}`);
+      params.push(`%${filters.type}%`);
     }
 
-    if (results.length === 0) {
-      results = [...memoryBuildings];
-      if (filters?.type && filters.type !== "all") {
-        results = results.filter((b) => b.type.toLowerCase().includes(filters.type!.toLowerCase()));
-      }
-      if (filters?.condition && filters.condition !== "all") {
-        results = results.filter((b) => b.condition.toLowerCase() === filters.condition!.toLowerCase());
-      }
-      if (filters?.maintenanceStatus && filters.maintenanceStatus !== "all") {
-        results = results.filter(
-          (b) => b.maintenanceStatus.toLowerCase() === filters.maintenanceStatus!.toLowerCase()
-        );
-      }
-      if (filters?.search) {
-        const s = filters.search.toLowerCase().trim();
-        results = results.filter(
-          (b) =>
-            b.name.toLowerCase().includes(s) ||
-            b.passportId.toLowerCase().includes(s) ||
-            b.location.address.toLowerCase().includes(s) ||
-            b.location.city.toLowerCase().includes(s)
-        );
-      }
+    if (filters?.condition && filters.condition !== "all") {
+      conditions.push(`condition = $${paramIndex++}`);
+      params.push(filters.condition);
     }
 
-    // Ensure all results have QR code
-    for (const b of results) {
-      if (!b.qrCodeDataUrl) {
+    if (filters?.maintenanceStatus && filters.maintenanceStatus !== "all") {
+      conditions.push(`maintenance_status = $${paramIndex++}`);
+      params.push(filters.maintenanceStatus);
+    }
+
+    if (filters?.search && filters.search.trim()) {
+      const s = `%${filters.search.trim()}%`;
+      conditions.push(
+        `(name ILIKE $${paramIndex} OR passport_id ILIKE $${paramIndex} OR location_address ILIKE $${paramIndex} OR location_city ILIKE $${paramIndex})`
+      );
+      params.push(s);
+      paramIndex++;
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+    const sql = `SELECT * FROM buildings ${whereClause} ORDER BY created_at DESC;`;
+
+    const res = await query<BuildingDbRow>(sql, params);
+    if (res.rows.length === 0) {
+      return [];
+    }
+
+    const buildingIds = res.rows.map((r) => r.id);
+    const photoMap = await this.getPhotographsForBuildings(buildingIds);
+
+    const records: BuildingRecord[] = [];
+    for (const row of res.rows) {
+      const photos = photoMap.get(row.id) || [];
+      const record = mapBuildingRow(row, photos);
+
+      // Lazily regenerate QR code if missing in DB
+      if (!record.qrCodeDataUrl) {
         try {
-          b.qrCodeDataUrl = await QrService.generatePassportQr(b.passportId);
+          record.qrCodeDataUrl = await QrService.generatePassportQr(record.passportId);
         } catch {
-          // Ignore
+          // Non-blocking
         }
       }
+
+      records.push(record);
     }
 
-    return results;
+    return records;
   }
 
   /**
-   * Retrieves single building by Mongo ID or Passport ID
+   * Retrieves single building by ID or Passport ID from PostgreSQL
    */
   public static async getBuildingById(idOrPassportId: string): Promise<BuildingRecord | null> {
     const term = idOrPassportId.trim();
 
-    try {
-      if (isDbConnected() || (await connectDb().catch(() => null))) {
-        let doc: Record<string, unknown> | null = null;
-        if (term.startsWith("BP-")) {
-          const found = await BuildingModel.findOne({ passportId: term.toUpperCase() });
-          if (found) doc = found.toObject ? found.toObject() : found;
-        } else {
-          const foundById = await BuildingModel.findById(term).catch(() => null);
-          if (foundById) {
-            doc = foundById.toObject ? foundById.toObject() : foundById;
-          } else {
-            const foundByPassport = await BuildingModel.findOne({ passportId: term.toUpperCase() });
-            if (foundByPassport) doc = foundByPassport.toObject ? foundByPassport.toObject() : foundByPassport;
-          }
-        }
-        if (doc) {
-          const rec = this.mapToRecord(doc);
-          if (!rec.qrCodeDataUrl) {
-            rec.qrCodeDataUrl = await QrService.generatePassportQr(rec.passportId);
-          }
-          return rec;
-        }
-      }
-    } catch {
-      // Memory fallback
-    }
-
-    const mem = memoryBuildings.find(
-      (b) => b.id === term || b.passportId.toUpperCase() === term.toUpperCase()
+    const res = await query<BuildingDbRow>(
+      "SELECT * FROM buildings WHERE id = $1 OR passport_id = $2 LIMIT 1;",
+      [term, term.toUpperCase()]
     );
-    if (mem) {
-      if (!mem.qrCodeDataUrl) {
-        mem.qrCodeDataUrl = await QrService.generatePassportQr(mem.passportId);
-      }
-      return mem;
+
+    if (res.rows.length === 0) {
+      return null;
     }
 
-    return null;
+    const row = res.rows[0];
+    const photoMap = await this.getPhotographsForBuildings([row.id]);
+    const photos = photoMap.get(row.id) || [];
+    const record = mapBuildingRow(row, photos);
+
+    if (!record.qrCodeDataUrl) {
+      try {
+        record.qrCodeDataUrl = await QrService.generatePassportQr(record.passportId);
+      } catch {
+        // Non-blocking
+      }
+    }
+
+    return record;
   }
 
   /**
-   * Updates an existing building record
+   * Verifies whether an authenticated user has permission to modify a building.
+   * - Admin and Engineer: Authorized across all records.
+   * - Owner: Authorized ONLY for buildings where building.createdBy === user.userId.
+   * - Public: Forbidden.
+   */
+  public static async checkBuildingModificationAccess(
+    idOrPassportId: string,
+    user: UserSession
+  ): Promise<{
+    allowed: boolean;
+    status: number;
+    message: string;
+    building?: BuildingRecord;
+  }> {
+    const building = await this.getBuildingById(idOrPassportId);
+    if (!building) {
+      return {
+        allowed: false,
+        status: 404,
+        message: "Building not found.",
+      };
+    }
+
+    if (user.role === "admin" || user.role === "engineer") {
+      return { allowed: true, status: 200, message: "Authorized.", building };
+    }
+
+    if (user.role === "owner") {
+      if (building.createdBy && building.createdBy === user.userId) {
+        return { allowed: true, status: 200, message: "Authorized.", building };
+      }
+      return {
+        allowed: false,
+        status: 403,
+        message: "Forbidden. You do not have permission to modify this building.",
+      };
+    }
+
+    return {
+      allowed: false,
+      status: 403,
+      message: "Forbidden. Insufficient permissions.",
+    };
+  }
+
+  /**
+   * Updates an existing building record and optionally updates its photographs
    */
   public static async updateBuilding(
     idOrPassportId: string,
     updates: Partial<BuildingRecord>
   ): Promise<BuildingRecord | null> {
-    const term = idOrPassportId.trim();
+    const existing = await this.getBuildingById(idOrPassportId);
+    if (!existing) {
+      return null;
+    }
+
+    const client = await getPostgresClient();
 
     try {
-      if (isDbConnected() || (await connectDb().catch(() => null))) {
-        const query = term.startsWith("BP-") ? { passportId: term.toUpperCase() } : { _id: term };
-        const updated = await BuildingModel.findOneAndUpdate(query, updates, { new: true });
-        if (updated) {
-          const rec = this.mapToRecord(updated.toObject ? updated.toObject() : updated);
-          // Update memory
-          const idx = memoryBuildings.findIndex((b) => b.id === rec.id || b.passportId === rec.passportId);
-          if (idx !== -1) memoryBuildings[idx] = rec;
-          return rec;
+      await client.query("BEGIN;");
+
+      const setClauses: string[] = [];
+      const values: unknown[] = [];
+      let idx = 1;
+
+      if (updates.name !== undefined) {
+        setClauses.push(`name = $${idx++}`);
+        values.push(updates.name);
+      }
+      if (updates.type !== undefined) {
+        setClauses.push(`type = $${idx++}`);
+        values.push(updates.type);
+      }
+      if (updates.constructionDate !== undefined) {
+        setClauses.push(`construction_date = $${idx++}`);
+        values.push(updates.constructionDate);
+      }
+      if (updates.totalArea !== undefined) {
+        setClauses.push(`total_area = $${idx++}`);
+        values.push(updates.totalArea);
+      }
+      if (updates.floors !== undefined) {
+        setClauses.push(`floors = $${idx++}`);
+        values.push(updates.floors);
+      }
+      if (updates.units !== undefined) {
+        setClauses.push(`units = $${idx++}`);
+        values.push(updates.units);
+      }
+      if (updates.usage !== undefined) {
+        setClauses.push(`usage = $${idx++}`);
+        values.push(updates.usage);
+      }
+      if (updates.description !== undefined) {
+        setClauses.push(`description = $${idx++}`);
+        values.push(updates.description || null);
+      }
+      if (updates.condition !== undefined) {
+        setClauses.push(`condition = $${idx++}`);
+        values.push(updates.condition);
+      }
+      if (updates.maintenanceStatus !== undefined) {
+        setClauses.push(`maintenance_status = $${idx++}`);
+        values.push(updates.maintenanceStatus);
+      }
+      if (updates.qrCodeDataUrl !== undefined) {
+        setClauses.push(`qr_code_data_url = $${idx++}`);
+        values.push(updates.qrCodeDataUrl || null);
+      }
+
+      // Location fields
+      if (updates.location) {
+        if (updates.location.address !== undefined) {
+          setClauses.push(`location_address = $${idx++}`);
+          values.push(updates.location.address);
+        }
+        if (updates.location.city !== undefined) {
+          setClauses.push(`location_city = $${idx++}`);
+          values.push(updates.location.city);
+        }
+        if (updates.location.state !== undefined) {
+          setClauses.push(`location_state = $${idx++}`);
+          values.push(updates.location.state || null);
+        }
+        if (updates.location.postalCode !== undefined) {
+          setClauses.push(`location_postal_code = $${idx++}`);
+          values.push(updates.location.postalCode || null);
+        }
+        if (updates.location.coordinates !== undefined) {
+          setClauses.push(`latitude = $${idx++}`);
+          values.push(updates.location.coordinates?.lat ?? null);
+          setClauses.push(`longitude = $${idx++}`);
+          values.push(updates.location.coordinates?.lng ?? null);
         }
       }
-    } catch {
-      // Memory fallback
+
+      // Structural info fields
+      if (updates.structuralInfo) {
+        if (updates.structuralInfo.frameType !== undefined) {
+          setClauses.push(`frame_type = $${idx++}`);
+          values.push(updates.structuralInfo.frameType);
+        }
+        if (updates.structuralInfo.foundation !== undefined) {
+          setClauses.push(`foundation = $${idx++}`);
+          values.push(updates.structuralInfo.foundation);
+        }
+        if (updates.structuralInfo.fireRating !== undefined) {
+          setClauses.push(`fire_rating = $${idx++}`);
+          values.push(updates.structuralInfo.fireRating);
+        }
+        if (updates.structuralInfo.exteriorCladding !== undefined) {
+          setClauses.push(`exterior_cladding = $${idx++}`);
+          values.push(updates.structuralInfo.exteriorCladding);
+        }
+        if (updates.structuralInfo.seismicZone !== undefined) {
+          setClauses.push(`seismic_zone = $${idx++}`);
+          values.push(updates.structuralInfo.seismicZone || null);
+        }
+      }
+
+      // Builder fields
+      if (updates.builder) {
+        if (updates.builder.companyName !== undefined) {
+          setClauses.push(`builder_company_name = $${idx++}`);
+          values.push(updates.builder.companyName || null);
+        }
+        if (updates.builder.builderName !== undefined) {
+          setClauses.push(`builder_name = $${idx++}`);
+          values.push(updates.builder.builderName || null);
+        }
+        if (updates.builder.contact !== undefined) {
+          setClauses.push(`builder_contact = $${idx++}`);
+          values.push(updates.builder.contact || null);
+        }
+        if (updates.builder.details !== undefined) {
+          setClauses.push(`builder_details = $${idx++}`);
+          values.push(updates.builder.details || null);
+        }
+      }
+
+      // Owner fields
+      if (updates.owner) {
+        if (updates.owner.name !== undefined) {
+          setClauses.push(`owner_name = $${idx++}`);
+          values.push(updates.owner.name || null);
+        }
+        if (updates.owner.contact !== undefined) {
+          setClauses.push(`owner_contact = $${idx++}`);
+          values.push(updates.owner.contact || null);
+        }
+        if (updates.owner.email !== undefined) {
+          setClauses.push(`owner_email = $${idx++}`);
+          values.push(updates.owner.email || null);
+        }
+        if (updates.owner.additionalInfo !== undefined) {
+          setClauses.push(`owner_additional_info = $${idx++}`);
+          values.push(updates.owner.additionalInfo || null);
+        }
+      }
+
+      setClauses.push(`updated_at = NOW()`);
+
+      if (setClauses.length > 1) {
+        values.push(existing.id);
+        const updateSql = `
+          UPDATE buildings
+          SET ${setClauses.join(", ")}
+          WHERE id = $${idx}
+          RETURNING *;
+        `;
+        await client.query(updateSql, values);
+      }
+
+      // Handle photograph persistence if provided
+      if (Array.isArray(updates.photographs)) {
+        await client.query("DELETE FROM building_photographs WHERE building_id = $1;", [
+          existing.id,
+        ]);
+        for (let photoIdx = 0; photoIdx < updates.photographs.length; photoIdx++) {
+          const p = updates.photographs[photoIdx];
+          const photoId = `photo_${existing.id}_${photoIdx + 1}`;
+          await client.query(
+            `INSERT INTO building_photographs (
+               id, building_id, url, caption, category, is_private, uploaded_at
+             ) VALUES ($1, $2, $3, $4, $5, $6, $7);`,
+            [
+              photoId,
+              existing.id,
+              p.url,
+              p.caption || null,
+              p.category || "additional",
+              Boolean(p.isPrivate),
+              p.uploadedAt ? new Date(p.uploadedAt) : new Date(),
+            ]
+          );
+        }
+      }
+
+      await client.query("COMMIT;");
+    } catch (err: unknown) {
+      await client.query("ROLLBACK;");
+      throw err;
+    } finally {
+      client.release();
     }
 
-    const idx = memoryBuildings.findIndex(
-      (b) => b.id === term || b.passportId.toUpperCase() === term.toUpperCase()
-    );
-    if (idx !== -1) {
-      memoryBuildings[idx] = {
-        ...memoryBuildings[idx],
-        ...updates,
-        updatedAt: new Date().toISOString(),
-      };
-      return memoryBuildings[idx];
-    }
-
-    return null;
+    return this.getBuildingById(existing.id);
   }
 
   /**
    * Retrieves public sanitized record for QR code scans.
-   * STRICT SECURITY: Omits owner contact, private email, internal documents, and private photos.
+   * STRICT SECURITY:
+   * - Resolves strictly by Passport ID (case-insensitive), NEVER by internal DB ID.
+   * - Omits owner contact, private email, internal documents, and private photos.
    */
-  public static async getPublicPassport(passportId: string): Promise<Partial<BuildingRecord> | null> {
-    const building = await this.getBuildingById(passportId);
-    if (!building) return null;
+  public static async getPublicPassport(
+    passportId: string
+  ): Promise<Partial<BuildingRecord> | null> {
+    if (!passportId || !passportId.trim()) return null;
 
-    // Sanitize: strip private details
+    const term = passportId.trim().toUpperCase();
+    const res = await query<BuildingDbRow>(
+      "SELECT * FROM buildings WHERE passport_id = $1 LIMIT 1;",
+      [term]
+    );
+
+    if (res.rows.length === 0) return null;
+
+    const row = res.rows[0];
+    const photoMap = await this.getPhotographsForBuildings([row.id]);
+    const photos = photoMap.get(row.id) || [];
+    const building = mapBuildingRow(row, photos);
+
+    if (!building.qrCodeDataUrl) {
+      try {
+        building.qrCodeDataUrl = await QrService.generatePassportQr(building.passportId);
+      } catch {
+        // Non-blocking
+      }
+    }
+
     return {
       id: building.id,
       passportId: building.passportId,
@@ -385,7 +629,6 @@ export class BuildingService {
         contact: "[Civil Verification Office Registered]",
         details: building.builder.details,
       },
-      // Owner is masked for public privacy
       owner: {
         name: building.owner?.name || "Registered Title Holder",
         contact: "[Confidential Civil Record - Authorized Access Only]",
@@ -401,7 +644,8 @@ export class BuildingService {
   }
 
   /**
-   * Assembles a consolidated Building Passport Engineering Dossier/Report
+   * Assembles a consolidated Building Passport Engineering Dossier/Report directly from PostgreSQL.
+   * NEVER uses stale in-memory arrays.
    */
   public static async generateReport(
     idOrPassportId: string,
@@ -410,25 +654,41 @@ export class BuildingService {
     const building = await this.getBuildingById(idOrPassportId);
     if (!building) return null;
 
-    // Fetch inspections
-    const inspections = memoryInspections.filter(
-      (i) => i.buildingId === building.id || i.buildingId === building.passportId
+    // Fetch inspections from PostgreSQL
+    const inspRes = await query<InspectionDbRow>(
+      "SELECT * FROM inspections WHERE building_id = $1 ORDER BY date DESC;",
+      [building.id]
     );
+    const inspections = inspRes.rows.map(mapInspectionRow);
 
-    // Fetch defects
-    const defects = memoryDefects.filter(
-      (d) => d.buildingId === building.id || d.buildingId === building.passportId
+    // Fetch defects from PostgreSQL
+    const defRes = await query<DefectDbRow>(
+      "SELECT * FROM defects WHERE building_id = $1 ORDER BY created_at DESC;",
+      [building.id]
     );
+    const defects = defRes.rows.map(mapDefectRow);
 
-    // Fetch maintenance
-    const maintenance = memoryMaintenance.filter(
-      (m) => m.buildingId === building.id || m.buildingId === building.passportId
+    // Fetch maintenance from PostgreSQL
+    const maintRes = await query<MaintenanceDbRow>(
+      "SELECT * FROM maintenance WHERE building_id = $1 ORDER BY repair_date DESC;",
+      [building.id]
     );
+    const maintenance = maintRes.rows.map(mapMaintenanceRow);
 
-    // Fetch documents accessible to this role
-    const docs = memoryDocuments
-      .filter((d) => d.buildingId === building.id || d.buildingId === building.passportId)
-      .filter((d) => !d.isPrivate || currentUser.role === "admin" || currentUser.role === "engineer")
+    // Fetch documents from PostgreSQL
+    const docRes = await query<DocumentDbRow>(
+      "SELECT * FROM documents WHERE building_id = $1 ORDER BY upload_date DESC;",
+      [building.id]
+    );
+    const allDocs = docRes.rows.map(mapDocumentRow);
+
+    // Filter documents accessible to current role
+    const canSeePrivateDocs =
+      currentUser.role === "admin" ||
+      currentUser.role === "engineer" ||
+      (currentUser.role === "owner" && building.createdBy === currentUser.userId);
+    const docs = allDocs
+      .filter((d) => !d.isPrivate || canSeePrivateDocs)
       .map((doc) => {
         const copy = { ...doc };
         delete (copy as { storageReference?: string }).storageReference;
@@ -439,6 +699,13 @@ export class BuildingService {
     const openDefects = defects.filter((d) => d.status === "Open" || d.status === "In Review").length;
     const criticalDefects = defects.filter((d) => d.severity === "Critical").length;
 
+    const safeBuilding = {
+      ...building,
+      photographs: canSeePrivateDocs
+        ? building.photographs
+        : building.photographs.filter((p) => !p.isPrivate),
+    };
+
     return {
       generatedAt: new Date().toISOString(),
       generatedBy: {
@@ -446,7 +713,7 @@ export class BuildingService {
         name: currentUser.name,
         role: currentUser.role,
       },
-      building,
+      building: safeBuilding,
       inspections,
       defects,
       maintenance,
@@ -461,12 +728,3 @@ export class BuildingService {
     };
   }
 }
-
-// Export memory store accessors for sibling services
-export {
-  memoryBuildings,
-  memoryInspections,
-  memoryDefects,
-  memoryMaintenance,
-  memoryDocuments,
-};

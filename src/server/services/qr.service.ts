@@ -32,4 +32,26 @@ export class QrService {
       throw new Error("Failed to generate QR code for building passport.");
     }
   }
+
+  /**
+   * Generates an SVG string representing the QR code for a public passport URL.
+   */
+  public static async generatePassportQrSvg(passportId: string): Promise<string> {
+    const url = this.getPublicUrl(passportId);
+    try {
+      const svg = await QRCode.toString(url, {
+        errorCorrectionLevel: "H",
+        type: "svg",
+        margin: 2,
+        color: {
+          dark: "#0F172A",
+          light: "#FFFFFF",
+        },
+      });
+      return svg;
+    } catch (err) {
+      console.error("[QrService Error] Failed to generate QR SVG:", err);
+      throw new Error("Failed to generate QR SVG for building passport.");
+    }
+  }
 }

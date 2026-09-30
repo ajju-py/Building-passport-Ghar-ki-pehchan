@@ -54,8 +54,22 @@ export class LocalDiskStorageProvider implements IStorageProvider {
     };
   }
 
+  private sanitizeRef(ref: string): string {
+    let clean = ref;
+    try {
+      while (clean.includes("%")) {
+        const decoded = decodeURIComponent(clean);
+        if (decoded === clean) break;
+        clean = decoded;
+      }
+    } catch {
+      // fallback if malformed percent encoding
+    }
+    return path.basename(clean);
+  }
+
   public async get(storageRef: string): Promise<Buffer> {
-    const safeRef = path.basename(storageRef);
+    const safeRef = this.sanitizeRef(storageRef);
     const filePath = path.join(this.uploadDir, safeRef);
     if (!fs.existsSync(filePath)) {
       throw new Error(`File not found: ${safeRef}`);
@@ -65,7 +79,7 @@ export class LocalDiskStorageProvider implements IStorageProvider {
 
   public async delete(storageRef: string): Promise<boolean> {
     try {
-      const safeRef = path.basename(storageRef);
+      const safeRef = this.sanitizeRef(storageRef);
       const filePath = path.join(this.uploadDir, safeRef);
       if (fs.existsSync(filePath)) {
         await fs.promises.unlink(filePath);
@@ -78,7 +92,7 @@ export class LocalDiskStorageProvider implements IStorageProvider {
   }
 
   public getUrl(storageRef: string): string {
-    const safeRef = path.basename(storageRef);
+    const safeRef = this.sanitizeRef(storageRef);
     return `/uploads/${safeRef}`;
   }
 }

@@ -3,6 +3,7 @@ import cors from "cors";
 import multer from "multer";
 import { env } from "../config/env";
 import { isDbConnected } from "../db";
+import { checkPostgresHealth } from "../db/postgres";
 import { AuthService } from "../services/auth.service";
 import { BuildingService } from "../services/building.service";
 import { InspectionService } from "../services/inspection.service";
@@ -18,10 +19,12 @@ import {
   buildingCreateSchema,
   inspectionCreateSchema,
   defectCreateSchema,
+  defectUpdateSchema,
   maintenanceCreateSchema,
   validateBody,
 } from "../middlewares/validation.middleware";
 import { ApiResponse } from "@/lib/types";
+import { createAuthRateLimiter } from "../middlewares/rateLimiter";
 
 // Setup multer memory storage for streaming directly into storageService
 const upload = multer({
@@ -67,19 +70,31 @@ app.use("/uploads", express.static(env.UPLOAD_DIR));
 // -----------------------------------------------------------
 // SYSTEM & HEALTH CHECK
 // -----------------------------------------------------------
-app.get("/api/health", (_req: Request, res: Response) => {
+app.get("/api/health", async (_req: Request, res: Response) => {
   const dbConnected = isDbConnected();
+  const pgHealth = await checkPostgresHealth();
+
   res.json({
-    status: "ok",
+    status: pgHealth.connected ? "ok" : "degraded",
     timestamp: new Date().toISOString(),
     environment: env.NODE_ENV,
     database: {
-      provider: "mongodb",
-      connected: dbConnected,
-      mode: dbConnected ? "live-mongodb" : "memory-fallback-active",
-      notice: dbConnected
-        ? "Connected to MongoDB instance"
-        : "Live MongoDB not reached. Operating in high-fidelity civil in-memory repository.",
+      provider: "postgresql",
+      connected: pgHealth.connected,
+      mode: pgHealth.connected ? "live-postgresql" : "disconnected",
+      postgres: {
+        connected: pgHealth.connected,
+        endpoint: pgHealth.endpoint,
+        database: pgHealth.database,
+        latencyMs: pgHealth.latencyMs,
+        version: pgHealth.version,
+      },
+      mongodb: {
+        connected: dbConnected,
+      },
+      notice: pgHealth.connected
+        ? "Connected to PostgreSQL 17 primary database."
+        : `PostgreSQL connection issue: ${pgHealth.error}`,
     },
     version: "2.0.0-stage2",
   });
@@ -88,24 +103,33 @@ app.get("/api/health", (_req: Request, res: Response) => {
 // -----------------------------------------------------------
 // AUTHENTICATION ROUTES
 // -----------------------------------------------------------
-app.post("/api/auth/register", validateBody(registerSchema), async (req: Request, res: Response) => {
-  try {
-    const result = await AuthService.register(req.body);
-    const response: ApiResponse<typeof result> = {
-      success: true,
-      message: "User registered successfully.",
-      data: result,
-    };
-    res.status(201).json(response);
-  } catch (err: unknown) {
-    res.status(400).json({
-      success: false,
-      error: (err as Error).message || "Registration failed.",
-    });
+app.post(
+  "/api/auth/register",
+  createAuthRateLimiter("register"),
+  validateBody(registerSchema),
+  async (req: Request, res: Response) => {
+    try {
+      const result = await AuthService.register(req.body);
+      const response: ApiResponse<typeof result> = {
+        success: true,
+        message: "User registered successfully.",
+        data: result,
+      };
+      res.status(201).json(response);
+    } catch (err: unknown) {
+      res.status(400).json({
+        success: false,
+        error: (err as Error).message || "Registration failed.",
+      });
+    }
   }
-});
+);
 
-app.post("/api/auth/login", validateBody(loginSchema), async (req: Request, res: Response) => {
+app.post(
+  "/api/auth/login",
+  createAuthRateLimiter("login"),
+  validateBody(loginSchema),
+  async (req: Request, res: Response) => {
   try {
     const result = await AuthService.login(req.body);
     const response: ApiResponse<typeof result> = {
@@ -201,7 +225,7 @@ app.post(
   }
 );
 
-app.get("/api/buildings/:id", async (req: Request, res: Response) => {
+app.get("/api/buildings/:id", optionalAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const building = await BuildingService.getBuildingById(String(req.params.id));
     if (!building) {
@@ -211,9 +235,22 @@ app.get("/api/buildings/:id", async (req: Request, res: Response) => {
       });
       return;
     }
+
+    const canSeePrivate =
+      req.user?.role === "admin" ||
+      req.user?.role === "engineer" ||
+      (req.user?.role === "owner" && building.createdBy && building.createdBy === req.user.userId);
+
+    const safeBuilding = {
+      ...building,
+      photographs: canSeePrivate
+        ? building.photographs
+        : building.photographs.filter((p) => !p.isPrivate),
+    };
+
     res.json({
       success: true,
-      data: building,
+      data: safeBuilding,
     });
   } catch (err: unknown) {
     res.status(500).json({
@@ -229,6 +266,18 @@ app.put(
   requireRole("admin", "engineer", "owner"),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
+      const access = await BuildingService.checkBuildingModificationAccess(
+        String(req.params.id),
+        req.user!
+      );
+      if (!access.allowed) {
+        res.status(access.status).json({
+          success: false,
+          error: access.message,
+        });
+        return;
+      }
+
       const updated = await BuildingService.updateBuilding(String(req.params.id), req.body);
       if (!updated) {
         res.status(404).json({
@@ -319,6 +368,28 @@ app.post(
   }
 );
 
+app.get("/api/inspections/:id", async (req: Request, res: Response) => {
+  try {
+    const inspection = await InspectionService.getInspectionById(String(req.params.id));
+    if (!inspection) {
+      res.status(404).json({
+        success: false,
+        error: "Inspection record not found.",
+      });
+      return;
+    }
+    res.json({
+      success: true,
+      data: inspection,
+    });
+  } catch (err: unknown) {
+    res.status(500).json({
+      success: false,
+      error: (err as Error).message || "Failed to retrieve inspection.",
+    });
+  }
+});
+
 // -----------------------------------------------------------
 // DEFECT ROUTES
 // -----------------------------------------------------------
@@ -344,6 +415,18 @@ app.post(
   validateBody(defectCreateSchema),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
+      const access = await BuildingService.checkBuildingModificationAccess(
+        String(req.params.id),
+        req.user!
+      );
+      if (!access.allowed) {
+        res.status(access.status).json({
+          success: false,
+          error: access.message,
+        });
+        return;
+      }
+
       const defect = await DefectService.createDefect(String(req.params.id), req.body);
       res.status(201).json({
         success: true,
@@ -359,10 +442,10 @@ app.post(
   }
 );
 
-app.patch("/api/defects/:defectId", requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+app.get("/api/defects/:defectId", async (req: Request, res: Response) => {
   try {
-    const updated = await DefectService.updateDefect(String(req.params.defectId), req.body);
-    if (!updated) {
+    const defect = await DefectService.getDefectById(String(req.params.defectId));
+    if (!defect) {
       res.status(404).json({
         success: false,
         error: "Defect record not found.",
@@ -371,15 +454,57 @@ app.patch("/api/defects/:defectId", requireAuth, async (req: AuthenticatedReques
     }
     res.json({
       success: true,
-      data: updated,
+      data: defect,
     });
   } catch (err: unknown) {
-    res.status(400).json({
+    res.status(500).json({
       success: false,
-      error: (err as Error).message || "Failed to update defect.",
+      error: (err as Error).message || "Failed to retrieve defect.",
     });
   }
 });
+
+app.patch(
+  "/api/defects/:defectId",
+  requireAuth,
+  requireRole("admin", "engineer", "owner"),
+  validateBody(defectUpdateSchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const existing = await DefectService.getDefectById(String(req.params.defectId));
+      if (!existing) {
+        res.status(404).json({
+          success: false,
+          error: "Defect record not found.",
+        });
+        return;
+      }
+
+      const access = await BuildingService.checkBuildingModificationAccess(
+        existing.buildingId,
+        req.user!
+      );
+      if (!access.allowed) {
+        res.status(access.status).json({
+          success: false,
+          error: access.message,
+        });
+        return;
+      }
+
+      const updated = await DefectService.updateDefect(String(req.params.defectId), req.body);
+      res.json({
+        success: true,
+        data: updated,
+      });
+    } catch (err: unknown) {
+      res.status(400).json({
+        success: false,
+        error: (err as Error).message || "Failed to update defect.",
+      });
+    }
+  }
+);
 
 // -----------------------------------------------------------
 // MAINTENANCE ROUTES
@@ -406,6 +531,18 @@ app.post(
   validateBody(maintenanceCreateSchema),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
+      const access = await BuildingService.checkBuildingModificationAccess(
+        String(req.params.id),
+        req.user!
+      );
+      if (!access.allowed) {
+        res.status(access.status).json({
+          success: false,
+          error: access.message,
+        });
+        return;
+      }
+
       const record = await MaintenanceService.createMaintenance(String(req.params.id), req.body);
       res.status(201).json({
         success: true,
@@ -421,12 +558,34 @@ app.post(
   }
 );
 
+app.get("/api/maintenance/:id", async (req: Request, res: Response) => {
+  try {
+    const record = await MaintenanceService.getMaintenanceById(String(req.params.id));
+    if (!record) {
+      res.status(404).json({
+        success: false,
+        error: "Maintenance record not found.",
+      });
+      return;
+    }
+    res.json({
+      success: true,
+      data: record,
+    });
+  } catch (err: unknown) {
+    res.status(500).json({
+      success: false,
+      error: (err as Error).message || "Failed to retrieve maintenance record.",
+    });
+  }
+});
+
 // -----------------------------------------------------------
 // DOCUMENTS & BLUEPRINTS UPLOAD ROUTES
 // -----------------------------------------------------------
 app.get("/api/buildings/:id/documents", optionalAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const docs = await DocumentService.getDocuments(String(req.params.id), req.user?.role);
+    const docs = await DocumentService.getDocuments(String(req.params.id), req.user);
     res.json({
       success: true,
       data: docs,
@@ -446,6 +605,18 @@ app.post(
   upload.single("file"),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
+      const access = await BuildingService.checkBuildingModificationAccess(
+        String(req.params.id),
+        req.user!
+      );
+      if (!access.allowed) {
+        res.status(access.status).json({
+          success: false,
+          error: access.message,
+        });
+        return;
+      }
+
       if (!req.file) {
         res.status(400).json({
           success: false,
@@ -455,6 +626,15 @@ app.post(
       }
 
       const { title, documentType, isPrivate } = req.body;
+      const validTypes = ["blueprint", "structural", "permit", "report", "other"];
+      if (documentType !== undefined && documentType !== null && !validTypes.includes(documentType)) {
+        res.status(400).json({
+          success: false,
+          error: `Invalid document type '${documentType}'. Allowed: ${validTypes.join(", ")}`,
+        });
+        return;
+      }
+
       const doc = await DocumentService.uploadDocument({
         buildingId: String(req.params.id),
         fileBuffer: req.file.buffer,
@@ -480,41 +660,149 @@ app.post(
   }
 );
 
+app.get("/api/documents/:id", optionalAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const doc = await DocumentService.getDocumentById(String(req.params.id));
+    if (!doc) {
+      res.status(404).json({
+        success: false,
+        error: "Document record not found.",
+      });
+      return;
+    }
+
+    if (doc.isPrivate && req.user?.role !== "admin" && req.user?.role !== "engineer") {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          error: "Unauthorized. This document is confidential.",
+        });
+        return;
+      }
+      const access = await BuildingService.checkBuildingModificationAccess(doc.buildingId, req.user);
+      if (!access.allowed) {
+        res.status(403).json({
+          success: false,
+          error: "Forbidden. This document is confidential.",
+        });
+        return;
+      }
+    }
+
+    res.json({
+      success: true,
+      data: doc,
+    });
+  } catch (err: unknown) {
+    res.status(500).json({
+      success: false,
+      error: (err as Error).message || "Failed to retrieve document.",
+    });
+  }
+});
+
 // -----------------------------------------------------------
-// PHOTOGRAPHS UPLOAD ROUTE
+// PHOTOGRAPHS ROUTES
 // -----------------------------------------------------------
+app.get("/api/buildings/:id/photographs", optionalAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const photos = await BuildingService.getPhotographs(String(req.params.id), req.user);
+    if (!photos) {
+      res.status(404).json({
+        success: false,
+        error: "Building not found.",
+      });
+      return;
+    }
+    res.json({
+      success: true,
+      data: photos,
+    });
+  } catch (err: unknown) {
+    res.status(500).json({
+      success: false,
+      error: (err as Error).message || "Failed to retrieve photographs.",
+    });
+  }
+});
+
 app.post(
   "/api/buildings/:id/photographs",
   requireAuth,
   requireRole("admin", "engineer", "owner"),
   upload.single("photo"),
   async (req: AuthenticatedRequest, res: Response) => {
+    let savedStorageRef: string | null = null;
     try {
-      if (!req.file) {
-        res.status(400).json({
+      const access = await BuildingService.checkBuildingModificationAccess(
+        String(req.params.id),
+        req.user!
+      );
+      if (!access.allowed) {
+        res.status(access.status).json({
           success: false,
-          error: "No photo attached.",
+          error: access.message,
         });
         return;
       }
 
-      const stored = await storageService.save(
-        req.file.buffer,
-        req.file.originalname,
-        req.file.mimetype
-      );
+      const { caption, category, isPrivate } = req.body || {};
+      const validCategories = ["main", "additional", "construction"];
+      const categoryToUse = category || "additional";
+      if (!validCategories.includes(categoryToUse)) {
+        res.status(400).json({
+          success: false,
+          error: `Invalid photograph category '${categoryToUse}'. Allowed: ${validCategories.join(", ")}`,
+        });
+        return;
+      }
 
-      const { caption, category, isPrivate } = req.body;
+      let photoUrl = "";
+      let defaultCaption = "";
+
+      if (req.file) {
+        const allowedMimes = ["image/jpeg", "image/png", "image/webp", "image/svg+xml"];
+        const allowedExts = /\.(jpe?g|png|webp|svg)$/i;
+        if (!allowedMimes.includes(req.file.mimetype) && !allowedExts.test(req.file.originalname)) {
+          res.status(400).json({
+            success: false,
+            error: "Invalid image file type. Allowed: JPG, PNG, WEBP, SVG.",
+          });
+          return;
+        }
+
+        const stored = await storageService.save(
+          req.file.buffer,
+          req.file.originalname,
+          req.file.mimetype
+        );
+        savedStorageRef = stored.storageRef;
+        photoUrl = stored.url;
+        defaultCaption = req.file.originalname;
+      } else if (req.body?.url) {
+        photoUrl = req.body.url;
+        defaultCaption = req.body.caption || "Building Photograph";
+      } else {
+        res.status(400).json({
+          success: false,
+          error: "No photo attached or URL provided.",
+        });
+        return;
+      }
+
       const photoItem = {
-        url: stored.url,
-        caption: caption || req.file.originalname,
-        category: category || "additional",
+        url: photoUrl,
+        caption: caption || defaultCaption,
+        category: categoryToUse as "main" | "additional" | "construction",
         isPrivate: isPrivate === "true" || isPrivate === true,
         uploadedAt: new Date().toISOString(),
       };
 
       const building = await BuildingService.getBuildingById(String(req.params.id));
       if (!building) {
+        if (savedStorageRef) {
+          await storageService.delete(savedStorageRef);
+        }
         res.status(404).json({
           success: false,
           error: "Building not found.",
@@ -533,6 +821,9 @@ app.post(
         data: updated?.photographs,
       });
     } catch (err: unknown) {
+      if (savedStorageRef) {
+        await storageService.delete(savedStorageRef);
+      }
       res.status(400).json({
         success: false,
         error: (err as Error).message || "Photograph upload failed.",
@@ -542,12 +833,25 @@ app.post(
 );
 
 // Global Error Handler
-app.use((err: Error & { status?: number }, _req: Request, res: Response, next: NextFunction) => {
+app.use((err: Error & { status?: number; code?: string }, _req: Request, res: Response, next: NextFunction) => {
   console.error("[Express Server Error]", err);
   if (res.headersSent) {
     return next(err);
   }
-  res.status(err.status || 500).json({
+  let status = err.status || 500;
+  if (err.name === "MulterError" || err.code === "LIMIT_FILE_SIZE") {
+    status = 413;
+  }
+  // Multer fileFilter throws plain Error with identifiable message
+  if (
+    err.message?.includes("File type not supported") ||
+    err.message?.includes("Allowed:") ||
+    err.message?.includes("file size") ||
+    err.message?.includes("not supported")
+  ) {
+    status = 400;
+  }
+  res.status(status).json({
     success: false,
     error: err.message || "Internal server error occurred.",
   });

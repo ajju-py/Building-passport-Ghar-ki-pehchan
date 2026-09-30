@@ -85,13 +85,13 @@ export interface DefectRecord {
   id: string;
   defectId: string;
   buildingId: string;
-  inspectionId?: string;
+  inspectionId?: string | null;
   category: string;
   location: string;
   severity: DefectSeverity;
   status: DefectStatus;
   details: string;
-  imageRef?: string;
+  imageRef?: string | null;
   createdAt: string;
   updatedAt: string;
 }

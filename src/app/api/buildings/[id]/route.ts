@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { BuildingService } from "@/server/services/building.service";
-import { enforceAuth } from "@/server/helpers/nextAuth";
+import { enforceAuth, getSessionFromRequest } from "@/server/helpers/nextAuth";
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -15,9 +15,23 @@ export async function GET(
         { status: 404 }
       );
     }
+
+    const session = getSessionFromRequest(req);
+    const canSeePrivate =
+      session?.role === "admin" ||
+      session?.role === "engineer" ||
+      (session?.role === "owner" && building.createdBy && building.createdBy === session.userId);
+
+    const safeBuilding = {
+      ...building,
+      photographs: canSeePrivate
+        ? building.photographs
+        : building.photographs.filter((p) => !p.isPrivate),
+    };
+
     return NextResponse.json({
       success: true,
-      data: building,
+      data: safeBuilding,
     });
   } catch (err: unknown) {
     return NextResponse.json(
@@ -44,6 +58,14 @@ export async function PUT(
 
   try {
     const { id } = await params;
+    const access = await BuildingService.checkBuildingModificationAccess(id, session);
+    if (!access.allowed) {
+      return NextResponse.json(
+        { success: false, error: access.message },
+        { status: access.status }
+      );
+    }
+
     const body = await req.json();
     const updated = await BuildingService.updateBuilding(id, body);
     if (!updated) {

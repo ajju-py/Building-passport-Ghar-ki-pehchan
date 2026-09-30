@@ -2,43 +2,47 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { UserRole, UserSession } from "@/lib/types";
 import { env } from "../config/env";
-import { connectDb, isDbConnected } from "../db";
-import { UserModel, IUser } from "../models/User";
-import { initialSeedUsers, SeedUser } from "../data/seedData";
-
-// In-memory fallback user repository
-const memoryUsers: SeedUser[] = [...initialSeedUsers];
+import { query } from "../db/postgres";
+import { initialSeedUsers } from "../data/seedData";
 
 export interface AuthTokens {
   token: string;
   user: UserSession;
 }
 
+interface UserRow {
+  id: string;
+  name: string;
+  email: string;
+  password: string;
+  role: UserRole;
+  created_at: Date;
+  updated_at: Date;
+}
+
 export class AuthService {
   /**
-   * Initializes seed users into MongoDB if DB is connected and empty
+   * Ensures default seed users exist in PostgreSQL if empty.
    */
   public static async ensureSeedUsers(): Promise<void> {
     try {
-      if (!isDbConnected()) {
-        await connectDb().catch(() => null);
-      }
-      if (isDbConnected()) {
-        const count = await UserModel.countDocuments();
-        if (count === 0) {
-          for (const u of initialSeedUsers) {
-            await UserModel.create({
-              name: u.name,
-              email: u.email,
-              password: u.rawPasswordForDemo, // Pre-save hook will hash it
-              role: u.role,
-            });
-          }
-          console.log("[AuthService] Seeded default users into MongoDB.");
+      const res = await query<{ count: number }>("SELECT count(*)::int as count FROM users;");
+      if (res.rows[0].count === 0) {
+        for (const u of initialSeedUsers) {
+          const passwordHash = u.rawPasswordForDemo
+            ? await bcrypt.hash(u.rawPasswordForDemo, 10)
+            : u.passwordHash;
+          await query(
+            `INSERT INTO users (id, name, email, password, role, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+             ON CONFLICT (id) DO NOTHING;`,
+            [u.id, u.name, u.email.toLowerCase().trim(), passwordHash, u.role]
+          );
         }
+        console.log("[AuthService] Seeded default users into PostgreSQL.");
       }
-    } catch {
-      // Ignored for offline fallback
+    } catch (err: unknown) {
+      console.error("[AuthService] Error checking/seeding users in PostgreSQL:", (err as Error).message);
     }
   }
 
@@ -80,7 +84,7 @@ export class AuthService {
   }
 
   /**
-   * Registers a new user account
+   * Registers a new user account in PostgreSQL
    */
   public static async register(data: {
     name: string;
@@ -89,70 +93,39 @@ export class AuthService {
     role?: UserRole;
   }): Promise<AuthTokens> {
     const emailNormalized = data.email.toLowerCase().trim();
-    const role: UserRole = data.role && ["admin", "engineer", "owner", "public"].includes(data.role)
-      ? data.role
-      : "owner";
+    // Service-level security boundary:
+    // Public self-registration only permits unprivileged roles ('owner' or 'public').
+    // Attempts to self-register as 'admin' or 'engineer' are strictly prohibited and fall back to 'owner'.
+    const role: UserRole = data.role === "public" ? "public" : "owner";
 
-    // Try MongoDB
-    try {
-      if (isDbConnected() || (await connectDb().catch(() => null))) {
-        const existing = await UserModel.findOne({ email: emailNormalized });
-        if (existing) {
-          throw new Error("An account with this email address already exists.");
-        }
-        const createdUser = (await UserModel.create({
-          name: data.name.trim(),
-          email: emailNormalized,
-          password: data.password,
-          role,
-        })) as IUser;
+    // Duplicate email detection via parameterized query
+    const existing = await query<{ id: string }>(
+      "SELECT id FROM users WHERE email = $1 LIMIT 1;",
+      [emailNormalized]
+    );
 
-        const sessionUser: UserSession = {
-          userId: createdUser._id.toString(),
-          name: createdUser.name,
-          email: createdUser.email,
-          role: createdUser.role,
-        };
-
-        const token = this.signToken({
-          id: sessionUser.userId,
-          name: sessionUser.name,
-          email: sessionUser.email,
-          role: sessionUser.role,
-        });
-
-        return { token, user: sessionUser };
-      }
-    } catch (err: unknown) {
-      if ((err as Error).message.includes("already exists")) {
-        throw err;
-      }
-      console.warn("[AuthService] MongoDB write unavailable, using memory fallback.");
-    }
-
-    // In-memory fallback
-    const memExisting = memoryUsers.find((u) => u.email === emailNormalized);
-    if (memExisting) {
+    if (existing.rows.length > 0) {
       throw new Error("An account with this email address already exists.");
     }
 
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(data.password, salt);
-    const newUser: SeedUser = {
-      id: `usr_${Date.now()}`,
-      name: data.name.trim(),
-      email: emailNormalized,
-      passwordHash,
-      rawPasswordForDemo: data.password,
-      role,
-    };
-    memoryUsers.push(newUser);
+    const userId = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+    const res = await query<UserRow>(
+      `INSERT INTO users (id, name, email, password, role, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+       RETURNING id, name, email, role;`,
+      [userId, data.name.trim(), emailNormalized, passwordHash, role]
+    );
+
+    const createdUser = res.rows[0];
 
     const sessionUser: UserSession = {
-      userId: newUser.id,
-      name: newUser.name,
-      email: newUser.email,
-      role: newUser.role,
+      userId: createdUser.id,
+      name: createdUser.name,
+      email: createdUser.email,
+      role: createdUser.role,
     };
 
     const token = this.signToken({
@@ -166,63 +139,32 @@ export class AuthService {
   }
 
   /**
-   * Authenticates user credentials and returns token
+   * Authenticates user credentials via PostgreSQL and returns token
    */
   public static async login(credentials: { email: string; password: string }): Promise<AuthTokens> {
     const emailNormalized = credentials.email.toLowerCase().trim();
 
-    // Try MongoDB
-    try {
-      if (isDbConnected() || (await connectDb().catch(() => null))) {
-        const user = await UserModel.findOne({ email: emailNormalized }).select("+password");
-        if (user) {
-          const match = await user.comparePassword(credentials.password);
-          if (!match) {
-            throw new Error("Invalid email or password.");
-          }
-          const sessionUser: UserSession = {
-            userId: user._id.toString(),
-            name: user.name,
-            email: user.email,
-            role: user.role,
-          };
-          const token = this.signToken({
-            id: sessionUser.userId,
-            name: sessionUser.name,
-            email: sessionUser.email,
-            role: sessionUser.role,
-          });
-          return { token, user: sessionUser };
-        }
-      }
-    } catch (err: unknown) {
-      if ((err as Error).message === "Invalid email or password.") {
-        throw err;
-      }
-      console.warn("[AuthService] MongoDB lookup unavailable, trying memory store.");
-    }
+    const res = await query<UserRow>(
+      "SELECT id, name, email, password, role FROM users WHERE email = $1 LIMIT 1;",
+      [emailNormalized]
+    );
 
-    // In-memory fallback
-    const memUser = memoryUsers.find((u) => u.email === emailNormalized);
-    if (!memUser) {
+    if (res.rows.length === 0) {
       throw new Error("Invalid email or password.");
     }
 
-    // If matches raw password or bcrypt compare
-    let isMatch = credentials.password === memUser.rawPasswordForDemo;
-    if (!isMatch && memUser.passwordHash) {
-      isMatch = await bcrypt.compare(credentials.password, memUser.passwordHash);
-    }
+    const user = res.rows[0];
+    const match = await bcrypt.compare(credentials.password, user.password);
 
-    if (!isMatch) {
+    if (!match) {
       throw new Error("Invalid email or password.");
     }
 
     const sessionUser: UserSession = {
-      userId: memUser.id,
-      name: memUser.name,
-      email: memUser.email,
-      role: memUser.role,
+      userId: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
     };
 
     const token = this.signToken({
@@ -236,34 +178,24 @@ export class AuthService {
   }
 
   /**
-   * Finds user by ID
+   * Finds user by ID in PostgreSQL
    */
   public static async findById(id: string): Promise<UserSession | null> {
-    try {
-      if (isDbConnected() || (await connectDb().catch(() => null))) {
-        const user = await UserModel.findById(id);
-        if (user) {
-          return {
-            userId: user._id.toString(),
-            name: user.name,
-            email: user.email,
-            role: user.role,
-          };
-        }
-      }
-    } catch {
-      // Memory fallback
+    const res = await query<{ id: string; name: string; email: string; role: UserRole }>(
+      "SELECT id, name, email, role FROM users WHERE id = $1 LIMIT 1;",
+      [id]
+    );
+
+    if (res.rows.length === 0) {
+      return null;
     }
 
-    const memUser = memoryUsers.find((u) => u.id === id);
-    if (memUser) {
-      return {
-        userId: memUser.id,
-        name: memUser.name,
-        email: memUser.email,
-        role: memUser.role,
-      };
-    }
-    return null;
+    const user = res.rows[0];
+    return {
+      userId: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    };
   }
 }

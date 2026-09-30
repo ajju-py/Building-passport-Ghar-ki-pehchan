@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AuthService } from "@/server/services/auth.service";
 import { registerSchema } from "@/server/middlewares/validation.middleware";
+import { checkNextAuthRateLimit } from "@/server/middlewares/rateLimiter";
 
 export async function POST(req: NextRequest) {
+  const rateLimitResponse = checkNextAuthRateLimit(req, "register");
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   try {
     const body = await req.json();
     const validated = registerSchema.safeParse(body);

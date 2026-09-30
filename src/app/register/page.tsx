@@ -16,7 +16,7 @@ export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<UserRole>("engineer");
+  const [role, setRole] = useState<UserRole>("owner");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -115,9 +115,8 @@ export default function RegisterPage() {
                   onChange={(e) => setRole(e.target.value as UserRole)}
                   className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-300 rounded-md focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent text-slate-900 uppercase font-mono font-medium tracking-wider"
                 >
-                  <option value="engineer">Civil / Structural Engineer (Audit & Defects)</option>
-                  <option value="owner">Building Owner / Facility Manager</option>
-                  <option value="admin">Municipal Authority / Administrator</option>
+                  <option value="owner">Building Owner / Property Manager</option>
+                  <option value="public">General Public / Citizen Auditor</option>
                 </select>
               </div>
 
