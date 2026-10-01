@@ -15,6 +15,7 @@ import { requireAuth, optionalAuth, AuthenticatedRequest } from "../middlewares/
 import { requireRole } from "../middlewares/role.middleware";
 import { UserService } from "../services/user.service";
 import { OtpService } from "../services/otp.service";
+import { AssessmentService } from "../services/health/assessment.service";
 import {
   registerSchema,
   loginSchema,
@@ -1158,6 +1159,120 @@ app.post(
       res.status(400).json({
         success: false,
         error: (err as Error).message || "Photograph upload failed.",
+      });
+    }
+  }
+);
+
+// -----------------------------------------------------------
+// STAGE 3 HEALTH ASSESSMENT ROUTES
+// -----------------------------------------------------------
+app.post(
+  "/api/buildings/:id/health-assessments",
+  requireAuth,
+  requireRole("admin", "engineer", "owner"),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const access = await AssessmentService.checkBuildingHealthAccess(
+        String(req.params.id),
+        req.user!
+      );
+      if (!access.allowed) {
+        res.status(access.status).json({
+          success: false,
+          error: access.message,
+        });
+        return;
+      }
+
+      const assessment = await AssessmentService.calculateAndPersistAssessment(
+        access.buildingId!,
+        {
+          assessedBy: req.user!.userId,
+        }
+      );
+
+      res.status(201).json({
+        success: true,
+        message: "Health assessment generated and persisted successfully.",
+        data: assessment,
+      });
+    } catch (err: unknown) {
+      res.status(400).json({
+        success: false,
+        error: (err as Error).message || "Failed to generate health assessment.",
+      });
+    }
+  }
+);
+
+app.get(
+  "/api/buildings/:id/health-assessments",
+  requireAuth,
+  requireRole("admin", "engineer", "owner"),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const access = await AssessmentService.checkBuildingHealthAccess(
+        String(req.params.id),
+        req.user!
+      );
+      if (!access.allowed) {
+        res.status(access.status).json({
+          success: false,
+          error: access.message,
+        });
+        return;
+      }
+
+      const assessments = await AssessmentService.getAssessmentsByBuilding(access.buildingId!);
+      res.json({
+        success: true,
+        data: assessments,
+      });
+    } catch (err: unknown) {
+      res.status(500).json({
+        success: false,
+        error: (err as Error).message || "Failed to retrieve health assessments.",
+      });
+    }
+  }
+);
+
+app.get(
+  "/api/buildings/:id/health-assessments/latest",
+  requireAuth,
+  requireRole("admin", "engineer", "owner"),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const access = await AssessmentService.checkBuildingHealthAccess(
+        String(req.params.id),
+        req.user!
+      );
+      if (!access.allowed) {
+        res.status(access.status).json({
+          success: false,
+          error: access.message,
+        });
+        return;
+      }
+
+      const latest = await AssessmentService.getLatestAssessmentByBuilding(access.buildingId!);
+      if (!latest) {
+        res.status(404).json({
+          success: false,
+          error: `No health assessments found for building '${req.params.id}'.`,
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        data: latest,
+      });
+    } catch (err: unknown) {
+      res.status(500).json({
+        success: false,
+        error: (err as Error).message || "Failed to retrieve latest health assessment.",
       });
     }
   }
