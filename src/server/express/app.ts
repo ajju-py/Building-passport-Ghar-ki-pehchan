@@ -79,7 +79,8 @@ app.use(
     origin: (requestOrigin, callback) => {
       // Allow requests with no origin (such as curl, mobile apps, or local scripts)
       if (!requestOrigin) return callback(null, true);
-      if (allowedOrigins.includes(requestOrigin)) {
+      const isVercelDomain = /^https:\/\/[a-zA-Z0-9._-]+\.vercel\.app$/.test(requestOrigin);
+      if (allowedOrigins.includes(requestOrigin) || isVercelDomain) {
         return callback(null, true);
       }
       return callback(new Error(`Origin ${requestOrigin} not permitted by CORS policy.`));
