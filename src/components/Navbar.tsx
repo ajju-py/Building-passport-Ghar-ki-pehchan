@@ -112,6 +112,14 @@ export default function Navbar() {
                     {user.role}
                   </span>
                 </Link>
+                <Link
+                  href="/profile"
+                  title="Account Profile & Security"
+                  aria-label="Account Profile & Security"
+                  className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors border border-transparent hover:border-slate-200"
+                >
+                  <User className="w-4 h-4" />
+                </Link>
                 <button
                   type="button"
                   onClick={logout}
@@ -187,6 +195,14 @@ export default function Navbar() {
                   >
                     <span>Civil Dashboard</span>
                     <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                  <Link
+                    href="/profile"
+                    onClick={closeMenu}
+                    className="flex items-center justify-center space-x-2 w-full text-xs font-semibold uppercase tracking-wider text-slate-800 bg-slate-100 hover:bg-slate-200 py-2.5 rounded-md border border-slate-200 transition-colors"
+                  >
+                    <User className="w-3.5 h-3.5" />
+                    <span>My Profile & Security</span>
                   </Link>
                   <button
                     type="button"

@@ -11,7 +11,15 @@ interface RateLimitConfig {
   message: string;
 }
 
-export const RATE_LIMITS: Record<"login" | "register", RateLimitConfig> = {
+export type AuthRateLimitType =
+  | "login"
+  | "register"
+  | "forgot-password"
+  | "reset-password"
+  | "otp"
+  | "change-password";
+
+export const RATE_LIMITS: Record<AuthRateLimitType, RateLimitConfig> = {
   login: {
     windowMs: 60 * 1000, // 1 minute
     max: 15,             // 15 attempts per minute per IP
@@ -21,6 +29,26 @@ export const RATE_LIMITS: Record<"login" | "register", RateLimitConfig> = {
     windowMs: 60 * 1000, // 1 minute
     max: 10,             // 10 registrations per minute per IP
     message: "Too many registration attempts. Please try again later.",
+  },
+  "forgot-password": {
+    windowMs: 60 * 1000, // 1 minute
+    max: 5,              // 5 requests per minute per IP
+    message: "Too many password reset requests. Please try again later.",
+  },
+  "reset-password": {
+    windowMs: 60 * 1000, // 1 minute
+    max: 5,              // 5 attempts per minute per IP
+    message: "Too many reset attempts. Please try again later.",
+  },
+  otp: {
+    windowMs: 60 * 1000, // 1 minute
+    max: 10,             // 10 OTP requests/verifications per minute per IP
+    message: "Too many verification requests. Please try again later.",
+  },
+  "change-password": {
+    windowMs: 60 * 1000, // 1 minute
+    max: 5,              // 5 attempts per minute per IP
+    message: "Too many password change attempts. Please try again later.",
   },
 };
 
@@ -128,7 +156,7 @@ function getNextIp(req: NextRequest): string {
 /**
  * Express middleware for authentication rate limiting.
  */
-export function createAuthRateLimiter(type: "login" | "register") {
+export function createAuthRateLimiter(type: AuthRateLimitType) {
   const config = RATE_LIMITS[type];
 
   return (req: Request, res: Response, next: NextFunction): void => {
@@ -159,7 +187,7 @@ export function createAuthRateLimiter(type: "login" | "register") {
  */
 export function checkNextAuthRateLimit(
   req: NextRequest,
-  type: "login" | "register"
+  type: AuthRateLimitType
 ): NextResponse | null {
   const config = RATE_LIMITS[type];
   const ip = getNextIp(req);
@@ -186,3 +214,4 @@ export function checkNextAuthRateLimit(
 
   return null;
 }
+

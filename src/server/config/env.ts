@@ -70,10 +70,20 @@ if (nodeEnv === "production") {
 }
 
 const resolvedJwtSecret = configuredJwtSecret || DEFAULT_INSECURE_JWT_SECRET;
+const isShowcaseMode = process.env.SHOWCASE_MODE === "true";
+
+if (isShowcaseMode) {
+  console.warn("=====================================================================");
+  console.warn("  [SECURITY NOTICE] SHOWCASE MODE ENABLED — EXTERNAL EMAIL VERIFICATION DISABLED");
+  console.warn("  Outbound emails are simulated in-memory via DevNotificationProvider.");
+  console.warn("  Real external SMTP email delivery is intentionally bypassed.");
+  console.warn("=====================================================================");
+}
 
 export const env = {
   PORT: parseInt(process.env.PORT || "5000", 10),
   NODE_ENV: nodeEnv,
+  SHOWCASE_MODE: isShowcaseMode,
   MONGODB_URI: process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/building_passport",
   DATABASE_URL: resolvedDatabaseUrl,
   PG_HOST: pgHost,
@@ -88,3 +98,4 @@ export const env = {
   UPLOAD_DIR: path.resolve(process.cwd(), process.env.UPLOAD_DIR || "uploads"),
   MAX_FILE_SIZE_MB: parseInt(process.env.MAX_FILE_SIZE_MB || "25", 10),
 };
+

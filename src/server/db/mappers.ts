@@ -9,6 +9,13 @@ import {
   DefectStatus,
   MaintenanceStatus,
   DocumentType,
+  UserProfile,
+  UserRole,
+  AccountStatus,
+  HealthAssessmentRecord,
+  RiskLevel,
+  CategoryScores,
+  ContributingFactor,
 } from "@/lib/types";
 
 export interface BuildingDbRow {
@@ -269,5 +276,75 @@ export function mapDocumentRow(row: DocumentDbRow): DocumentRecord {
     isPrivate: Boolean(row.is_private),
     createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : new Date(row.created_at).toISOString(),
     updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : new Date(row.updated_at).toISOString(),
+  };
+}
+
+export interface UserDbRow {
+  id: string;
+  name: string;
+  email: string;
+  password?: string;
+  role: string;
+  mobile: string | null;
+  account_status: string;
+  email_verified_at: Date | string | null;
+  mobile_verified_at: Date | string | null;
+  failed_login_attempts: number;
+  locked_until: Date | string | null;
+  last_login_at: Date | string | null;
+  password_changed_at: Date | string | null;
+  created_at: Date | string;
+  updated_at: Date | string;
+}
+
+export function mapUserProfileRow(row: UserDbRow): UserProfile {
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    mobile: row.mobile || undefined,
+    role: row.role as UserRole,
+    accountStatus: (row.account_status || "active") as AccountStatus,
+    emailVerifiedAt: row.email_verified_at ? (row.email_verified_at instanceof Date ? row.email_verified_at.toISOString() : new Date(row.email_verified_at).toISOString()) : null,
+    mobileVerifiedAt: row.mobile_verified_at ? (row.mobile_verified_at instanceof Date ? row.mobile_verified_at.toISOString() : new Date(row.mobile_verified_at).toISOString()) : null,
+    lastLoginAt: row.last_login_at ? (row.last_login_at instanceof Date ? row.last_login_at.toISOString() : new Date(row.last_login_at).toISOString()) : null,
+    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : new Date(row.created_at).toISOString(),
+    updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : new Date(row.updated_at).toISOString(),
+  };
+}
+
+export interface HealthAssessmentDbRow {
+  id: string;
+  building_id: string;
+  assessment_date: Date | string;
+  overall_score: string | number;
+  risk_level: string;
+  category_scores: CategoryScores | string;
+  contributing_factors: ContributingFactor[] | string;
+  recommendations: string[] | string;
+  data_completeness_score: string | number;
+  model_version: string;
+  engine_type: string;
+  summary_explanation: string;
+  assessed_by: string | null;
+  created_at: Date | string;
+}
+
+export function mapHealthAssessmentRow(row: HealthAssessmentDbRow): HealthAssessmentRecord {
+  return {
+    id: row.id,
+    buildingId: row.building_id,
+    assessmentDate: row.assessment_date instanceof Date ? row.assessment_date.toISOString() : new Date(row.assessment_date).toISOString(),
+    overallScore: Number(row.overall_score),
+    riskLevel: row.risk_level as RiskLevel,
+    categoryScores: typeof row.category_scores === "string" ? JSON.parse(row.category_scores) : row.category_scores,
+    contributingFactors: typeof row.contributing_factors === "string" ? JSON.parse(row.contributing_factors) : (row.contributing_factors || []),
+    recommendations: typeof row.recommendations === "string" ? JSON.parse(row.recommendations) : (row.recommendations || []),
+    dataCompletenessScore: Number(row.data_completeness_score),
+    modelVersion: row.model_version,
+    engineType: row.engine_type,
+    summaryExplanation: row.summary_explanation,
+    assessedBy: row.assessed_by || null,
+    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : new Date(row.created_at).toISOString(),
   };
 }

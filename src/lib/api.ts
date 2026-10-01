@@ -11,6 +11,10 @@ import {
   MaintenanceStatus,
   UserRole,
   UserSession,
+  HealthAssessmentRecord,
+  UserProfile,
+  AccountStatus,
+  OtpPurpose,
 } from "./types";
 
 export interface SystemHealthData {
@@ -69,8 +73,8 @@ export const api = {
 
   // Auth
   auth: {
-    async register(payload: { name: string; email: string; password: string; role?: UserRole }) {
-      return request<{ token: string; user: UserSession }>("/api/auth/register", {
+    async register(payload: { name: string; email: string; password: string; role?: UserRole; mobile?: string }) {
+      return request<{ token: string; user: UserSession; verificationSent: boolean; message: string }>("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -85,8 +89,116 @@ export const api = {
       });
     },
 
+    async logout() {
+      return request<{ message: string }>("/api/auth/logout", {
+        method: "POST",
+      });
+    },
+
     async getMe() {
       return request<UserSession>("/api/auth/me");
+    },
+
+    async requestOtp(payload: { destination: string; purpose: OtpPurpose }) {
+      return request<{ destination: string; expiresAt?: string }>("/api/auth/request-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    },
+
+    async verifyOtp(payload: { destination: string; otp: string; purpose: "EMAIL_VERIFICATION" | "MOBILE_VERIFICATION" }) {
+      return request<{ message: string }>("/api/auth/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    },
+
+    async verifyEmail(payload: { email: string; otp: string }) {
+      return request<{ message: string }>("/api/auth/verify-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    },
+
+    async forgotPassword(payload: { email: string }) {
+      return request<{ message: string }>("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    },
+
+    async resetPassword(payload: { email: string; otp: string; newPassword: string }) {
+      return request<{ message: string }>("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    },
+
+    async changePassword(payload: { currentPassword: string; newPassword: string }) {
+      return request<{ message: string }>("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    },
+  },
+
+  // Users (Profile & Admin Management)
+  users: {
+    async getMe() {
+      return request<UserProfile>("/api/users/me");
+    },
+
+    async updateProfile(data: { name?: string; mobile?: string | null }) {
+      return request<UserProfile>("/api/users/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+    },
+
+    async list(filters?: { search?: string; role?: UserRole; status?: AccountStatus; limit?: number; offset?: number }) {
+      const params = new URLSearchParams();
+      if (filters?.search) params.append("search", filters.search);
+      if (filters?.role) params.append("role", filters.role);
+      if (filters?.status) params.append("status", filters.status);
+      if (filters?.limit) params.append("limit", filters.limit.toString());
+      if (filters?.offset) params.append("offset", filters.offset.toString());
+      const qs = params.toString() ? `?${params.toString()}` : "";
+      return request<{ users: UserProfile[]; total: number; limit: number; offset: number }>(`/api/users${qs}`);
+    },
+
+    async getById(id: string) {
+      return request<UserProfile>(`/api/users/${encodeURIComponent(id)}`);
+    },
+
+    async create(data: { name: string; email: string; password: string; role: UserRole; mobile?: string }) {
+      return request<UserProfile>("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+    },
+
+    async updateStatus(id: string, status: AccountStatus) {
+      return request<UserProfile>(`/api/users/${encodeURIComponent(id)}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+    },
+
+    async updateRole(id: string, role: UserRole) {
+      return request<UserProfile>(`/api/users/${encodeURIComponent(id)}/role`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role }),
+      });
     },
   },
 
@@ -248,6 +360,38 @@ export const api = {
         throw new Error(data.error || "Photo upload failed");
       }
       return data.data;
+    },
+  },
+
+  // Stage 3 Health Assessments
+  healthAssessments: {
+    async list(buildingId: string): Promise<HealthAssessmentRecord[]> {
+      return request<HealthAssessmentRecord[]>(
+        `/api/buildings/${encodeURIComponent(buildingId)}/health-assessments`
+      );
+    },
+
+    async getLatest(buildingId: string): Promise<HealthAssessmentRecord> {
+      return request<HealthAssessmentRecord>(
+        `/api/buildings/${encodeURIComponent(buildingId)}/health-assessments/latest`
+      );
+    },
+
+    async getById(id: string): Promise<HealthAssessmentRecord> {
+      return request<HealthAssessmentRecord>(
+        `/api/health-assessments/${encodeURIComponent(id)}`
+      );
+    },
+
+    async generate(buildingId: string): Promise<HealthAssessmentRecord> {
+      return request<HealthAssessmentRecord>(
+        `/api/buildings/${encodeURIComponent(buildingId)}/health-assessments`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        }
+      );
     },
   },
 };

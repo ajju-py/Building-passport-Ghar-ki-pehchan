@@ -4,14 +4,33 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { UserRole, UserSession } from "@/lib/types";
 import { api } from "@/lib/api";
 
+interface RegisterResult {
+  verificationSent: boolean;
+  message: string;
+}
+
 interface AuthContextType {
   user: UserSession | null;
   token: string | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (data: { name: string; email: string; password: string; role?: UserRole }) => Promise<void>;
+  register: (data: {
+    name: string;
+    email: string;
+    password: string;
+    role?: UserRole;
+    mobile?: string;
+  }) => Promise<RegisterResult>;
   logout: () => void;
   quickLogin: (role: "admin" | "engineer" | "owner") => Promise<void>;
+  forgotPassword: (email: string) => Promise<string>;
+  resetPassword: (data: { email: string; otp: string; newPassword: string }) => Promise<string>;
+  changePassword: (data: { currentPassword: string; newPassword: string }) => Promise<string>;
+  verifyOtp: (data: {
+    destination: string;
+    otp: string;
+    purpose: "EMAIL_VERIFICATION" | "MOBILE_VERIFICATION";
+  }) => Promise<string>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,6 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem("bp_auth_token");
       localStorage.removeItem("bp_auth_user");
     }
+    api.auth.logout().catch(() => {});
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
@@ -44,7 +64,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const register = useCallback(
-    async (data: { name: string; email: string; password: string; role?: UserRole }) => {
+    async (data: {
+      name: string;
+      email: string;
+      password: string;
+      role?: UserRole;
+      mobile?: string;
+    }): Promise<RegisterResult> => {
       setIsLoading(true);
       try {
         const res = await api.auth.register(data);
@@ -52,6 +78,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(res.user);
         localStorage.setItem("bp_auth_token", res.token);
         localStorage.setItem("bp_auth_user", JSON.stringify(res.user));
+        return {
+          verificationSent: res.verificationSent,
+          message: res.message,
+        };
       } finally {
         setIsLoading(false);
       }
@@ -70,6 +100,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await login(creds.email, creds.password);
     },
     [login]
+  );
+
+  const forgotPassword = useCallback(async (email: string): Promise<string> => {
+    const res = await api.auth.forgotPassword({ email });
+    return res.message;
+  }, []);
+
+  const resetPassword = useCallback(
+    async (data: { email: string; otp: string; newPassword: string }): Promise<string> => {
+      const res = await api.auth.resetPassword(data);
+      return res.message;
+    },
+    []
+  );
+
+  const changePassword = useCallback(
+    async (data: { currentPassword: string; newPassword: string }): Promise<string> => {
+      const res = await api.auth.changePassword(data);
+      return res.message;
+    },
+    []
+  );
+
+  const verifyOtp = useCallback(
+    async (data: {
+      destination: string;
+      otp: string;
+      purpose: "EMAIL_VERIFICATION" | "MOBILE_VERIFICATION";
+    }): Promise<string> => {
+      const res = await api.auth.verifyOtp(data);
+      if (user) {
+        setUser({ ...user, accountStatus: "active" });
+      }
+      return res.message;
+    },
+    [user]
   );
 
   useEffect(() => {
@@ -121,6 +187,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         register,
         logout,
         quickLogin,
+        forgotPassword,
+        resetPassword,
+        changePassword,
+        verifyOtp,
       }}
     >
       {children}

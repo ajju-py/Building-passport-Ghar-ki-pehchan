@@ -22,6 +22,7 @@ import {
   HardHat,
   Printer,
   ChevronLeft,
+  Activity,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import {
@@ -36,6 +37,7 @@ import {
 } from "@/lib/types";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import BuildingHealthSection from "@/components/health/BuildingHealthSection";
 
 export default function BuildingDetailPage({
   params,
@@ -50,7 +52,7 @@ export default function BuildingDetailPage({
   const [maintenance, setMaintenance] = useState<MaintenanceRecord[]>([]);
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
   const [activeTab, setActiveTab] = useState<
-    "overview" | "inspections" | "defects" | "maintenance" | "documents" | "photos" | "qr" | "report"
+    "overview" | "health" | "inspections" | "defects" | "maintenance" | "documents" | "photos" | "qr" | "report"
   >("overview");
 
   const [loading, setLoading] = useState(true);
@@ -303,6 +305,14 @@ export default function BuildingDetailPage({
                   <span className="text-[10px] font-mono uppercase bg-blue-50 text-blue-800 border border-blue-200 px-2 py-0.5 rounded font-medium">
                     {building.maintenanceStatus}
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("health")}
+                    className="text-[10px] font-mono uppercase bg-indigo-50 text-indigo-800 hover:bg-indigo-100 border border-indigo-200 px-2 py-0.5 rounded font-medium flex items-center space-x-1 transition-colors cursor-pointer"
+                  >
+                    <Activity className="w-3 h-3 text-indigo-600" />
+                    <span>Health Assessment</span>
+                  </button>
                 </div>
 
                 <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1.5">
@@ -351,6 +361,7 @@ export default function BuildingDetailPage({
           <div className="mt-6 pt-4 border-t border-slate-100 flex items-center space-x-1 overflow-x-auto text-xs font-medium">
             {[
               { id: "overview", label: "Civil Specs & Overview", icon: Layers },
+              { id: "health", label: "Health Assessment", icon: Activity },
               { id: "inspections", label: `Inspections (${inspections.length})`, icon: FileCheck2 },
               { id: "defects", label: `Defects (${openDefectsCount} Open)`, icon: AlertTriangle },
               { id: "maintenance", label: "Maintenance Ledger", icon: Wrench },
@@ -960,6 +971,11 @@ export default function BuildingDetailPage({
                 </div>
               </div>
             </div>
+          )}
+
+          {/* TAB: CIVIL HEALTH ASSESSMENT */}
+          {activeTab === "health" && (
+            <BuildingHealthSection building={building} />
           )}
         </div>
       </main>
