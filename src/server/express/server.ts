@@ -18,9 +18,10 @@ async function startServer() {
     console.warn("[Server Notice] To run with live MongoDB, launch MongoDB on port 27017 or configure MONGODB_URI.");
   }
 
-  const server = app.listen(env.PORT, () => {
-    console.log(`[Server] Express API server listening on http://localhost:${env.PORT}`);
-    console.log(`[Server] Health check: http://localhost:${env.PORT}/api/health`);
+  const host = process.env.HOST || "127.0.0.1";
+  const server = app.listen(env.PORT, host, () => {
+    console.log(`[Server] Express API server listening on http://${host}:${env.PORT}`);
+    console.log(`[Server] Health check: http://${host}:${env.PORT}/api/health`);
     console.log(`[Server] Environment: ${env.NODE_ENV}`);
   });
 
