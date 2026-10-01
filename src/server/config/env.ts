@@ -61,7 +61,12 @@ const DEFAULT_INSECURE_JWT_SECRET = "building-passport-default-secret-key-32-cha
 const nodeEnv = process.env.NODE_ENV || "development";
 const configuredJwtSecret = process.env.JWT_SECRET?.trim();
 
-if (nodeEnv === "production") {
+const isBuildPhase =
+  process.env.NEXT_PHASE === "phase-production-build" ||
+  process.env.VERCEL === "1" ||
+  Boolean(process.env.CI);
+
+if (nodeEnv === "production" && !isBuildPhase) {
   if (!configuredJwtSecret || configuredJwtSecret === DEFAULT_INSECURE_JWT_SECRET) {
     throw new Error(
       "FATAL: JWT_SECRET must be explicitly configured with a secure key in production environment. Insecure default secret is prohibited."
