@@ -65,10 +65,25 @@ const upload = multer({
 
 export const app = express();
 
+const allowedOrigins = [
+  env.APP_URL,
+  process.env.CORS_ORIGIN,
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+].filter((url): url is string => Boolean(url && url.trim().length > 0));
+
 // Global Middlewares
 app.use(
   cors({
-    origin: "*",
+    origin: (requestOrigin, callback) => {
+      // Allow requests with no origin (such as curl, mobile apps, or local scripts)
+      if (!requestOrigin) return callback(null, true);
+      if (allowedOrigins.includes(requestOrigin)) {
+        return callback(null, true);
+      }
+      return callback(new Error(`Origin ${requestOrigin} not permitted by CORS policy.`));
+    },
+    credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
