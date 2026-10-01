@@ -1,51 +1,84 @@
 "use client";
 
-import { AlertCircle, CheckCircle, FileX, Database, History, Share2, ShieldAlert, Sparkles, RefreshCw } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle,
+  FileX,
+  Database,
+  History,
+  Share2,
+  ShieldAlert,
+  Sparkles,
+  RefreshCw,
+  FolderLock,
+  QrCode,
+  Layers,
+} from "lucide-react";
 
 export default function WhyPassport() {
   const problems = [
     {
-      title: "Fragmented Physical Documents",
-      desc: "Architectural drawings and permits scattered across paper binders, forgotten USB drives, and legacy offices.",
+      title: "Scattered Across Formats",
+      desc: "Architectural blueprints, structural calculations, and receipts are dispersed across emails, hard drives, and fragmented filing cabinets.",
       icon: FileX,
     },
     {
-      title: "Broken Handover Between Owners",
-      desc: "Critical structural histories and warranty records disappear whenever property ownership or management shifts.",
-      icon: Share2,
+      title: "Stored in Physical Binders",
+      desc: "Paper inspection logs and permits degrade physically over time, risking catastrophic loss in the event of water or fire damage.",
+      icon: FolderLock,
     },
     {
-      title: "Un-tracked Maintenance History",
-      desc: "Previous repair details, material grades, and contractor specs are unrecorded, leading to repeated, costly errors.",
+      title: "Difficult to Access on Demand",
+      desc: "Engineers, emergency crews, and safety inspectors cannot access vital structural specs immediately during critical decisions.",
+      icon: ShieldAlert,
+    },
+    {
+      title: "Difficult to Update Continuously",
+      desc: "Ad-hoc alterations and structural repairs go undocumented without a standardized, living lifecycle ledger.",
+      icon: RefreshCw,
+    },
+    {
+      title: "Difficult to Track Over Decades",
+      desc: "Aging curves, recurring structural defects, and repair histories get lost as decades pass without longitudinal analytics.",
       icon: History,
     },
     {
-      title: "Delayed Defect Remediation",
-      desc: "Water leakage, concrete spalling, or structural cracks are discovered late without historic progression records.",
-      icon: ShieldAlert,
+      title: "Disconnected Between Stakeholders",
+      desc: "Builders, consecutive owners, facility managers, and civil authorities operate in isolation with zero shared context.",
+      icon: Share2,
     },
   ];
 
   const solutions = [
     {
       title: "Single Centralized Identity",
-      desc: "Every detail linked to one immutable Building Passport ID, accessible instantly via secure digital identity.",
+      desc: "Every record, drawing, and permit is tied directly to one immutable Building Passport ID (e.g., BP-2026-00125).",
       icon: Database,
     },
     {
-      title: "Seamless Transfer of Ownership",
-      desc: "Complete digital handover ensures new owners, auditors, and civil engineers inherit 100% verified historical context.",
-      icon: RefreshCw,
+      title: "Permanent Digital Archive",
+      desc: "ISO 19650 compliant digital preservation keeps civil records auditable, intact, and immune to physical deterioration.",
+      icon: Layers,
     },
     {
-      title: "Immutable Maintenance Log",
-      desc: "Every repair, invoice, inspector note, and material spec is permanently logged in a chronological civil audit trail.",
+      title: "Instant QR-Based Verification",
+      desc: "Physical on-site QR plates allow authorized stakeholders to access critical specifications in seconds from any device.",
+      icon: QrCode,
+    },
+    {
+      title: "Continuous Lifecycle Logging",
+      desc: "Standardized workflow enables inspectors and contractors to log completed repairs, defects, and observations seamlessly.",
       icon: CheckCircle,
     },
     {
-      title: "Predictive Health & Risk Insights",
-      desc: "Proactive tracking enables early detection of structural risks, saving money and preserving building longevity.",
+      title: "Decadal Historical Continuity",
+      desc: "Chronological audit trail preserves the building's lineage through every renovation, inspection, and maintenance cycle.",
       icon: Sparkles,
+    },
+    {
+      title: "Frictionless Ownership Transfer",
+      desc: "Complete digital handover ensures incoming property owners and maintenance teams inherit 100% verified historical knowledge.",
+      icon: RefreshCw,
     },
   ];
 
@@ -62,74 +95,78 @@ export default function WhyPassport() {
             Why Building Passport?
           </h2>
           <p className="mt-4 text-base sm:text-lg text-slate-600 leading-relaxed font-normal">
-            Civil engineering assets lose up to 40% of their structural documentation during transfer. Building Passport solves document decay with continuous digital identity.
+            Building documentation is traditionally fragmented, paper-bound, and lost during handovers. Building Passport replaces document decay with continuous, centralized digital identity.
           </p>
         </div>
 
         {/* Problem → Solution Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-stretch">
           
           {/* PROBLEM SIDE */}
-          <div className="bg-slate-50/90 border border-slate-200 rounded-xl p-6 sm:p-8">
-            <div className="flex items-center space-x-3 mb-6 border-b border-slate-200 pb-4">
-              <div className="w-8 h-8 rounded bg-amber-100 text-amber-800 flex items-center justify-center border border-amber-200">
-                <AlertCircle className="w-5 h-5 text-amber-700" />
+          <div className="bg-slate-50/90 border border-slate-200 rounded-xl p-6 sm:p-8 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center space-x-3 mb-6 border-b border-slate-200 pb-4">
+                <div className="w-8 h-8 rounded bg-amber-100 text-amber-800 flex items-center justify-center border border-amber-200 shrink-0">
+                  <AlertCircle className="w-5 h-5 text-amber-700" aria-hidden="true" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 uppercase tracking-wide">
+                    The Problem: Traditional Fragmentation
+                  </h3>
+                  <p className="text-xs text-slate-500 font-mono">SCATTERED, PHYSICAL &amp; DISCONNECTED</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-900 uppercase tracking-wide">
-                  The Problem: Fragmented Systems
-                </h3>
-                <p className="text-xs text-slate-500 font-mono">TRADITIONAL CIVIL MANAGEMENT</p>
-              </div>
-            </div>
 
-            <div className="space-y-4">
-              {problems.map((prob, i) => {
-                const Icon = prob.icon;
-                return (
-                  <div key={i} className="bg-white p-4 rounded-lg border border-slate-200/80 flex items-start space-x-3.5 shadow-2xs">
-                    <div className="w-7 h-7 rounded bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 mt-0.5 border border-slate-200">
-                      <Icon className="w-3.5 h-3.5" />
+              <div className="space-y-3.5">
+                {problems.map((prob) => {
+                  const Icon = prob.icon;
+                  return (
+                    <div key={prob.title} className="bg-white p-3.5 sm:p-4 rounded-lg border border-slate-200/80 flex items-start space-x-3.5 shadow-2xs">
+                      <div className="w-7 h-7 rounded bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 mt-0.5 border border-slate-200">
+                        <Icon className="w-3.5 h-3.5" aria-hidden="true" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-slate-900">{prob.title}</h4>
+                        <p className="text-xs text-slate-600 mt-1 leading-relaxed">{prob.desc}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-sm font-semibold text-slate-900">{prob.title}</h4>
-                      <p className="text-xs text-slate-600 mt-1 leading-relaxed">{prob.desc}</p>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
 
           {/* SOLUTION SIDE */}
-          <div className="bg-slate-900 text-white rounded-xl p-6 sm:p-8 border border-slate-800 shadow-md">
-            <div className="flex items-center space-x-3 mb-6 border-b border-slate-800 pb-4">
-              <div className="w-8 h-8 rounded bg-emerald-950 text-emerald-400 flex items-center justify-center border border-emerald-800">
-                <CheckCircle className="w-5 h-5 text-emerald-400" />
+          <div className="bg-slate-900 text-white rounded-xl p-6 sm:p-8 border border-slate-800 shadow-md flex flex-col justify-between">
+            <div>
+              <div className="flex items-center space-x-3 mb-6 border-b border-slate-800 pb-4">
+                <div className="w-8 h-8 rounded bg-emerald-950 text-emerald-400 flex items-center justify-center border border-emerald-800 shrink-0">
+                  <CheckCircle className="w-5 h-5 text-emerald-400" aria-hidden="true" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-100 uppercase tracking-wide">
+                    The Solution: Building Passport
+                  </h3>
+                  <p className="text-xs text-slate-400 font-mono">UNIFIED CIVIL DATA PLATFORM</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-100 uppercase tracking-wide">
-                  The Solution: Building Passport
-                </h3>
-                <p className="text-xs text-slate-400 font-mono">DIGITAL LIFECYCLE ARCHITECTURE</p>
-              </div>
-            </div>
 
-            <div className="space-y-4">
-              {solutions.map((sol, i) => {
-                const Icon = sol.icon;
-                return (
-                  <div key={i} className="bg-slate-950/70 p-4 rounded-lg border border-slate-800 flex items-start space-x-3.5">
-                    <div className="w-7 h-7 rounded bg-slate-800 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5 border border-slate-700">
-                      <Icon className="w-3.5 h-3.5" />
+              <div className="space-y-3.5">
+                {solutions.map((sol) => {
+                  const Icon = sol.icon;
+                  return (
+                    <div key={sol.title} className="bg-slate-950/70 p-3.5 sm:p-4 rounded-lg border border-slate-800 flex items-start space-x-3.5">
+                      <div className="w-7 h-7 rounded bg-slate-800 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5 border border-slate-700">
+                        <Icon className="w-3.5 h-3.5" aria-hidden="true" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-slate-100">{sol.title}</h4>
+                        <p className="text-xs text-slate-300 mt-1 leading-relaxed">{sol.desc}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-sm font-semibold text-slate-100">{sol.title}</h4>
-                      <p className="text-xs text-slate-300 mt-1 leading-relaxed">{sol.desc}</p>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
 

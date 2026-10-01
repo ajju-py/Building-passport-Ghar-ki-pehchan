@@ -10,7 +10,7 @@
     --border-architectural: #d1d5db;
     --text-primary: #0f172a;
     --text-secondary: #475569;
-    --text-muted: #94a3b8;
+    --text-muted: #64748b;
     --accent-blue: #1e3a8a;
     --accent-blue-subtle: #f0f4f8;
     --status-green: #15803d;
@@ -70,4 +70,44 @@
 
 .font-mono-tech {
   font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* Modal and Drawer Micro-Transitions */
+@keyframes archFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes archZoomIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes archSlideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-arch-fade {
+  animation: archFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-arch-zoom {
+  animation: archZoomIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-arch-slide {
+  animation: archSlideDown 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Accessibility: Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

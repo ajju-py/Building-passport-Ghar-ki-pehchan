@@ -72,20 +72,20 @@ export default function BuildingLifecycle() {
             <span>04 // DECADAL CONTINUITY</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
-            The Building Passport Lifecycle
+            The Building Lifecycle
           </h2>
           <p className="mt-4 text-base sm:text-lg text-slate-600 leading-relaxed font-normal">
-            Building Passport accompanies a structure across decades of ownership, expanding organically with every inspection, renovation, and repair.
+            The Building Passport grows with the building. From initial structural blueprints to decadal renovations, every event is permanently cataloged.
           </p>
         </div>
 
         {/* Timeline Visualization */}
         <div className="relative">
           {/* Horizontal Desktop Line */}
-          <div className="hidden lg:block absolute top-1/2 left-0 right-0 h-0.5 bg-slate-200 -translate-y-1/2 z-0"></div>
+          <div className="hidden lg:block absolute top-1/2 left-0 right-0 h-0.5 bg-slate-200 -translate-y-1/2 z-0" aria-hidden="true"></div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-4 relative z-10">
-            {stages.map((st, i) => {
+            {stages.map((st) => {
               const Icon = st.icon;
               return (
                 <div
@@ -105,7 +105,7 @@ export default function BuildingLifecycle() {
 
                     {/* Icon */}
                     <div className="w-9 h-9 rounded-md bg-slate-900 text-white flex items-center justify-center mb-3">
-                      <Icon className="w-4 h-4 text-emerald-400" />
+                      <Icon className="w-4 h-4 text-emerald-400" aria-hidden="true" />
                     </div>
 
                     <h3 className="text-sm font-bold text-slate-900 mb-1">
@@ -133,14 +133,14 @@ export default function BuildingLifecycle() {
         {/* Supporting Narrative Footer */}
         <div className="mt-12 bg-slate-50 border border-slate-200 rounded-lg p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center space-x-3">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></div>
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 motion-safe:animate-pulse shrink-0" aria-hidden="true"></div>
             <p className="text-xs text-slate-700 font-medium">
-              <strong className="text-slate-900">Zero Information Loss:</strong> Even after 50 years and 10 ownership changes, the building&apos;s complete structural lineage remains intact.
+              <strong className="text-slate-900">Zero Information Loss:</strong> Even after 50 years and multiple ownership changes, the building&apos;s complete structural lineage remains intact.
             </p>
           </div>
           <a
             href="#sample-record"
-            className="text-xs font-mono font-semibold uppercase text-slate-900 hover:text-emerald-700 flex items-center space-x-1 shrink-0"
+            className="text-xs font-mono font-semibold uppercase text-slate-900 hover:text-emerald-700 flex items-center space-x-1 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 rounded"
           >
             <span>VIEW EXAMPLE PASSPORT</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -151,3 +151,4 @@ export default function BuildingLifecycle() {
     </section>
   );
 }
+
