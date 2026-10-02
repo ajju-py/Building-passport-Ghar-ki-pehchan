@@ -29,6 +29,6 @@ export async function GET() {
         ? "Connected to PostgreSQL 17 primary database."
         : `PostgreSQL connection issue: ${pgHealth.error}`,
     },
-    version: "2.0.0-stage2",
+    version: "2.0.0",
   });
 }

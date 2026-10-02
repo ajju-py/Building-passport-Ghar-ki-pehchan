@@ -55,7 +55,7 @@ export default function PublicBuildingPassportPage({
   if (loading) {
     return (
       <div className="min-h-screen bg-[#faf9f6] flex flex-col justify-between">
-        <Navbar />
+        <Navbar publicOnly={true} />
         <div className="flex-1 flex items-center justify-center p-12 text-xs font-mono text-slate-500">
           Resolving public Building Passport registry record...
         </div>
@@ -67,7 +67,7 @@ export default function PublicBuildingPassportPage({
   if (error || !building) {
     return (
       <div className="min-h-screen bg-[#faf9f6] flex flex-col justify-between">
-        <Navbar />
+        <Navbar publicOnly={true} />
         <div className="flex-1 max-w-md mx-auto flex flex-col items-center justify-center p-8 text-center pt-32">
           <AlertCircle className="w-12 h-12 text-rose-600 mb-3" />
           <h1 className="text-xl font-bold text-slate-900">Unverified Passport ID</h1>
@@ -88,7 +88,7 @@ export default function PublicBuildingPassportPage({
 
   return (
     <div className="min-h-screen bg-[#faf9f6] flex flex-col justify-between selection:bg-slate-900 selection:text-white">
-      <Navbar />
+      <Navbar publicOnly={true} />
 
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16">
         {/* Verification Guarantee Banner */}
@@ -99,10 +99,10 @@ export default function PublicBuildingPassportPage({
             </div>
             <div>
               <p className="font-bold text-emerald-950 text-sm flex items-center">
-                Official Public Civil Registry Verification
+                PUBLIC BUILDING PASSPORT
               </p>
               <p className="text-[11px] text-emerald-800 mt-0.5 font-mono">
-                Decadal Asset ID: {building.passportId} • Cryptographically Verified Record
+                Asset ID: {building.passportId} • Digitally Registered Building Record
               </p>
             </div>
           </div>
@@ -123,13 +123,9 @@ export default function PublicBuildingPassportPage({
                   {building.passportId}
                 </span>
                 <span
-                  className={`text-[10px] font-mono font-semibold uppercase px-2 py-0.5 rounded ${
-                    building.condition === "Good" || building.condition === "Excellent"
-                      ? "bg-emerald-50 text-emerald-800 border border-emerald-200/60"
-                      : "bg-amber-50 text-amber-800 border border-amber-200/60"
-                  }`}
+                  className="text-[10px] font-mono font-semibold uppercase px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200/60"
                 >
-                  Condition: {building.condition}
+                  Registry Status: ACTIVE
                 </span>
               </div>
 
@@ -223,7 +219,7 @@ export default function PublicBuildingPassportPage({
               <div>
                 <p className="font-semibold text-slate-900">Protected Stakeholder Information</p>
                 <p className="text-slate-600 text-[11px] mt-0.5">
-                  Direct owner contact details and internal engineering calculations are restricted from public QR scans under ISO/IEC civil privacy regulations.
+                  Direct owner contact details and internal engineering calculations are restricted from public QR scans to safeguard civil data privacy and asset security.
                 </p>
                 <Link
                   href="/login"

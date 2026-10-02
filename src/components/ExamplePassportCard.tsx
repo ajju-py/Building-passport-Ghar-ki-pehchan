@@ -320,8 +320,8 @@ export default function ExamplePassportCard() {
 
           {/* Footer Note */}
           <div className="bg-slate-50 px-6 py-3 border-t border-slate-200 text-[11px] font-mono text-slate-500 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
-            <span>DEMONSTRATION RECORD // STAGE 1 HOMEPAGE SPECIFICATION</span>
-            <span className="text-slate-700">NOT CONNECTED TO A LIVE BACKEND DATABASE</span>
+            <span>DEMONSTRATION RECORD // INTERACTIVE PREVIEW</span>
+            <span className="text-slate-700">SAMPLE CIVIL PASSPORT IDENTIFIER</span>
           </div>
 
         </div>

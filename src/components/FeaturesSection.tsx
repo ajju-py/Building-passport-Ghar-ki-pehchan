@@ -15,58 +15,58 @@ export default function FeaturesSection() {
   const features = [
     {
       title: "Digital Building Identity",
-      desc: "A unique digital identity for every building. Assigns an immutable, cryptographically verifiable civil record ID.",
+      desc: "A unique digital identity for every building. Assigns an immutable, verifiable digital civil record ID.",
       icon: ShieldCheck,
-      stage: "Stage 1 Platform",
+      tag: "Core Identity",
       future: false,
     },
     {
       title: "Complete Building Information",
       desc: "Keep important building information together. Consolidate structural materials, foundation specs, and entity registries.",
       icon: Database,
-      stage: "Stage 2 Ready",
+      tag: "Structural Specs",
       future: false,
     },
     {
       title: "Plans & Documents",
       desc: "Store plans, reports and certificates. Securely catalog CAD/BIM blueprints, fire permits, and occupancy records.",
       icon: FileText,
-      stage: "Stage 2 Ready",
+      tag: "Document Vault",
       future: false,
     },
     {
       title: "Inspection & Defect Tracking",
       desc: "Record inspections and building issues. Civil engineers log observations, defect photos, and monitor crack progression.",
       icon: AlertTriangle,
-      stage: "Stage 2 Ready",
+      tag: "Field Auditing",
       future: false,
     },
     {
       title: "Maintenance History",
       desc: "Track repairs and maintenance over time. Permanent chronological ledger of contractor repairs and scheduled servicing.",
       icon: History,
-      stage: "Stage 2 Ready",
+      tag: "Maintenance Ledger",
       future: false,
     },
     {
       title: "QR-Based Access",
       desc: "Quickly access a building passport. On-site scannable entrance plates provide authorized civil verification in seconds.",
       icon: QrCode,
-      stage: "Stage 1 Spec",
+      tag: "On-Site Access",
       future: false,
     },
     {
       title: "Building Health Assessment",
       desc: "Understand current building condition. Synthesize audit logs and maintenance freshness into an objective health score.",
       icon: Activity,
-      stage: "Stage 2 Ready",
+      tag: "Decision Support",
       future: false,
     },
     {
       title: "AI-Assisted Risk Prediction",
       desc: "Future intelligent building-health analysis. Evaluates material degradation curves, thermal scans, and defect patterns.",
       icon: Sparkles,
-      stage: "Coming in a future stage",
+      tag: "Predictive Analytics",
       future: true,
     },
   ];
@@ -100,7 +100,7 @@ export default function FeaturesSection() {
                 }`}
               >
                 <div>
-                  {/* Top Row: Icon + Stage Tag */}
+                  {/* Top Row: Icon + Tag */}
                   <div className="flex items-center justify-between mb-4">
                     <div
                       className={`w-10 h-10 rounded-lg flex items-center justify-center border ${
@@ -118,7 +118,7 @@ export default function FeaturesSection() {
                           : "bg-slate-100 text-slate-700 border-slate-200"
                       }`}
                     >
-                      {feat.stage}
+                      {feat.tag}
                     </span>
                   </div>
 

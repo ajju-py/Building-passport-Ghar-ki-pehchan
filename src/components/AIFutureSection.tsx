@@ -32,7 +32,7 @@ export default function AIFutureSection() {
         <div className="text-center max-w-3xl mx-auto mb-16">
           <div className="inline-flex items-center space-x-2 text-xs font-mono uppercase tracking-widest text-emerald-400 bg-slate-800/90 border border-slate-700 px-3.5 py-1.5 rounded-full mb-4 shadow-xs">
             <Sparkles className="w-3.5 h-3.5 text-emerald-400 motion-safe:animate-spin" aria-hidden="true" />
-            <span>STAGE 3 ROADMAP // FUTURE CAPABILITY PREVIEW</span>
+            <span>INTELLIGENT CIVIL ANALYTICS // PREDICTIVE HEALTH ROADMAP</span>
           </div>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight">
             The Building Passport That Gets Smarter Over Time.

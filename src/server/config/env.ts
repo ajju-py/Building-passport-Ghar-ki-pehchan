@@ -85,6 +85,13 @@ if (isShowcaseMode) {
   console.warn("=====================================================================");
 }
 
+const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+const resolvedAppUrl =
+  rawAppUrl ||
+  (nodeEnv === "production" || isShowcaseMode
+    ? "https://mdm-building-passport.vercel.app"
+    : "http://localhost:3000");
+
 export const env = {
   PORT: parseInt(process.env.PORT || "5000", 10),
   NODE_ENV: nodeEnv,
@@ -97,8 +104,8 @@ export const env = {
   PG_DATABASE: pgDatabase,
   JWT_SECRET: resolvedJwtSecret,
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || "7d",
-  APP_URL: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
-  API_URL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api",
+  APP_URL: resolvedAppUrl,
+  API_URL: process.env.NEXT_PUBLIC_API_URL || `${resolvedAppUrl}/api`,
   STORAGE_DRIVER: process.env.STORAGE_DRIVER || "local",
   UPLOAD_DIR: path.resolve(process.cwd(), process.env.UPLOAD_DIR || "uploads"),
   MAX_FILE_SIZE_MB: parseInt(process.env.MAX_FILE_SIZE_MB || "25", 10),

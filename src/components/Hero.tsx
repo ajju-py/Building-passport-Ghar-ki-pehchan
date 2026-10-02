@@ -10,7 +10,7 @@ export default function Hero() {
         + SYS_COORD: 40.7128° N, 74.0060° W
       </div>
       <div className="absolute top-24 right-8 text-slate-400 font-mono text-[10px] select-none pointer-events-none hidden md:block" aria-hidden="true">
-        REF_STD: ISO 19650 / BIM-DIGITAL-ID
+        CIVIL_SPEC: STRUCTURED-DIGITAL-ID
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -20,7 +20,7 @@ export default function Hero() {
             <span className="w-2 h-2 rounded-full bg-emerald-500 motion-safe:animate-pulse" aria-hidden="true"></span>
             <span className="font-semibold uppercase tracking-wider text-[11px]">CIVIL INFRASTRUCTURE SPECIFICATION</span>
             <span className="text-slate-400" aria-hidden="true">|</span>
-            <span className="text-slate-600">STAGE 1 DEPLOYMENT</span>
+            <span className="text-slate-600">DIGITAL IDENTITY PLATFORM</span>
           </div>
 
           {/* Main Title */}
@@ -175,12 +175,12 @@ export default function Hero() {
               <div className="text-[11px] text-slate-500 font-medium uppercase tracking-wider mt-0.5">QR Identity Fetch</div>
             </div>
             <div className="border-r border-slate-200 px-2">
-              <div className="text-xl font-bold text-slate-900 font-mono">ISO 19650</div>
-              <div className="text-[11px] text-slate-500 font-medium uppercase tracking-wider mt-0.5">Civil Standard Aligned</div>
+              <div className="text-xl font-bold text-slate-900 font-mono">BIM</div>
+              <div className="text-[11px] text-slate-500 font-medium uppercase tracking-wider mt-0.5">Structured Data Model</div>
             </div>
             <div className="px-2">
-              <div className="text-xl font-bold text-slate-900 font-mono">Stage 1</div>
-              <div className="text-[11px] text-slate-500 font-medium uppercase tracking-wider mt-0.5">Deploy Ready</div>
+              <div className="text-xl font-bold text-slate-900 font-mono">24/7</div>
+              <div className="text-[11px] text-slate-500 font-medium uppercase tracking-wider mt-0.5">Verified Access</div>
             </div>
           </div>
 

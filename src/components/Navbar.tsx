@@ -20,11 +20,25 @@ const defaultNavLinks: NavLink[] = [
   { name: "Dashboard", href: "/dashboard" },
 ];
 
-export default function Navbar() {
+const publicNavLinks: NavLink[] = [
+  { name: "Home", href: "/#overview" },
+  { name: "How It Works", href: "/#how-it-works" },
+  { name: "Features", href: "/#features" },
+  { name: "Lifecycle", href: "/#lifecycle" },
+];
+
+interface NavbarProps {
+  publicOnly?: boolean;
+}
+
+export default function Navbar({ publicOnly = false }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, logout } = useAuth();
   const pathname = usePathname();
+
+  const isPublicView = publicOnly || pathname?.startsWith("/public/");
+  const activeNavLinks = isPublicView ? publicNavLinks : defaultNavLinks;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -68,15 +82,10 @@ export default function Navbar() {
               <Building2 className="w-5 h-5 text-slate-100" />
             </div>
             <div className="flex flex-col">
-              <div className="flex items-center space-x-1.5">
-                <span className="font-semibold text-slate-900 tracking-tight text-lg leading-none">
-                  Building Passport
-                </span>
-                <span className="text-[10px] font-mono uppercase bg-emerald-50 text-emerald-800 px-1.5 py-0.5 rounded border border-emerald-200/60 font-semibold">
-                  Stage 2
-                </span>
-              </div>
-              <span className="text-[11px] text-slate-500 font-mono tracking-wider uppercase mt-0.5">
+              <span className="font-semibold text-slate-900 tracking-tight text-lg leading-none">
+                Building Passport
+              </span>
+              <span className="text-[11px] text-slate-500 font-mono tracking-wider uppercase mt-1">
                 Civil Digital Identity
               </span>
             </div>
@@ -87,7 +96,7 @@ export default function Navbar() {
             aria-label="Desktop Navigation"
             className="hidden lg:flex items-center space-x-0.5 xl:space-x-1 border border-slate-200/80 rounded-full px-3 py-1.5 bg-white/85 backdrop-blur-xs shadow-2xs"
           >
-            {defaultNavLinks.map((link) => (
+            {activeNavLinks.map((link) => (
               <Link
                 key={link.name}
                 href={link.href}
@@ -100,7 +109,22 @@ export default function Navbar() {
 
           {/* Right Action Buttons / User Status */}
           <div className="hidden sm:flex items-center space-x-3 shrink-0">
-            {user ? (
+            {isPublicView ? (
+              <div className="flex items-center space-x-2">
+                <Link
+                  href="/login"
+                  className="text-xs font-semibold uppercase tracking-wider text-slate-700 hover:text-slate-900 hover:bg-slate-100 px-3.5 py-2 rounded-md transition-colors"
+                >
+                  Authorized Sign In
+                </Link>
+                <Link
+                  href="/#sample-record"
+                  className="inline-flex items-center justify-center space-x-1.5 text-xs font-semibold uppercase tracking-wider text-white bg-slate-900 hover:bg-slate-800 px-3.5 py-2 rounded-md border border-slate-800 transition-all shadow-xs"
+                >
+                  <span>Explore Platform</span>
+                </Link>
+              </div>
+            ) : user ? (
               <div className="flex items-center space-x-2">
                 <Link
                   href="/dashboard"
@@ -149,28 +173,34 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 rounded-md text-slate-700 hover:text-slate-900 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
-            aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
-            aria-expanded={mobileMenuOpen}
-            aria-controls="mobile-navigation"
-          >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+          {/* Mobile menu button */}
+          <div className="flex items-center lg:hidden">
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="inline-flex items-center justify-center p-2 rounded-md text-slate-700 hover:text-slate-900 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+              aria-controls="mobile-menu"
+              aria-expanded={mobileMenuOpen}
+              aria-label="Toggle navigation menu"
+            >
+              {mobileMenuOpen ? (
+                <X className="block w-6 h-6" aria-hidden="true" />
+              ) : (
+                <Menu className="block w-6 h-6" aria-hidden="true" />
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Mobile Drawer */}
+      {/* Mobile Menu Drawer */}
       {mobileMenuOpen && (
         <div
-          id="mobile-navigation"
+          id="mobile-menu"
           className="lg:hidden bg-white border-b border-slate-200 px-4 pt-3 pb-6 mt-2 shadow-lg animate-arch-slide"
         >
           <nav aria-label="Mobile Navigation" className="flex flex-col space-y-1">
-            {defaultNavLinks.map((link) => (
+            {activeNavLinks.map((link) => (
               <Link
                 key={link.name}
                 href={link.href}
@@ -182,7 +212,16 @@ export default function Navbar() {
             ))}
 
             <div className="pt-3 border-t border-slate-100 space-y-2">
-              {user ? (
+              {isPublicView ? (
+                <Link
+                  href="/login"
+                  onClick={closeMenu}
+                  className="flex items-center justify-center space-x-2 w-full text-xs font-semibold uppercase tracking-wider text-slate-800 bg-slate-100 hover:bg-slate-200 py-2.5 rounded-md border border-slate-200 transition-colors"
+                >
+                  <User className="w-3.5 h-3.5" />
+                  <span>Authorized Sign In</span>
+                </Link>
+              ) : user ? (
                 <>
                   <div className="px-3 py-2 bg-slate-50 rounded-md border border-slate-200 text-xs">
                     <p className="font-semibold text-slate-900">{user.name}</p>

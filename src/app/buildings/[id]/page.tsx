@@ -799,7 +799,7 @@ export default function BuildingDetailPage({
                 <div>
                   <h2 className="text-base font-bold text-slate-900">Building Photographs & Telemetry</h2>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Visual photographic registry across lifecycle stages.
+                    Visual photographic registry across the building lifecycle.
                   </p>
                 </div>
               </div>

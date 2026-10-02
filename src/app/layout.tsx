@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     "BIM Asset Management",
     "Structural Health Record",
     "Building Lifecycle Management",
-    "ISO 19650 Compliance",
+    "Structured Building Information",
     "Smart Infrastructure",
   ],
   authors: [{ name: "Building Passport OS Team" }],

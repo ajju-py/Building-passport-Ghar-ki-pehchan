@@ -15,6 +15,10 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+  experimental: {
+    cpus: 2,
+    workerThreads: false,
+  },
   async rewrites() {
     return {
       beforeFiles: [

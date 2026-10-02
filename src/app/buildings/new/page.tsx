@@ -22,12 +22,42 @@ export default function NewBuildingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Form State
-  const [formData, setFormData] = useState({
+  // Initial Blank Form State
+  const INITIAL_BLANK_FORM = {
     name: "",
     type: "Commercial High-Rise",
-    constructionDate: "2023-01-15",
+    constructionDate: "",
     address: "",
+    city: "",
+    state: "",
+    postalCode: "",
+    totalArea: "",
+    floors: 1,
+    units: 1,
+    usage: "",
+    description: "",
+    frameType: "",
+    foundation: "",
+    fireRating: "",
+    exteriorCladding: "",
+    seismicZone: "Zone IV (High Damage Risk)",
+    builderCompany: "",
+    builderName: "",
+    builderContact: "",
+    builderDetails: "",
+    ownerName: "",
+    ownerContact: "",
+    ownerEmail: "",
+    ownerAdditionalInfo: "",
+    condition: "Good",
+    maintenanceStatus: "Up to Date",
+  };
+
+  const SAMPLE_DEMO_DATA = {
+    name: "Skyline Signature Commercial Towers",
+    type: "Commercial High-Rise",
+    constructionDate: "2023-01-15",
+    address: "Plot 14, Commercial Sector 22, Ring Road",
     city: "New Delhi",
     state: "Delhi",
     postalCode: "110001",
@@ -35,7 +65,7 @@ export default function NewBuildingPage() {
     floors: 10,
     units: 45,
     usage: "Commercial Offices & Retail",
-    description: "",
+    description: "Grade-A commercial high-rise facility registered under Civil Digital Identity program.",
     frameType: "Reinforced Concrete Moment Resisting Frame (RCC)",
     foundation: "Cast-in-situ Friction Piles with Mat Cap",
     fireRating: "2-Hour Resistance",
@@ -44,14 +74,17 @@ export default function NewBuildingPage() {
     builderCompany: "National Infrastructure & Civil Ltd.",
     builderName: "Er. Ramesh Chandra",
     builderContact: "+91 11 2890 4000",
-    builderDetails: "ISO 9001 Certified Class-A CPWD Contractor",
+    builderDetails: "Certified Class-A CPWD Contractor",
     ownerName: "Metropolitan Property Trust",
     ownerContact: "+91 98100 12345",
     ownerEmail: "assets@metrotrust.in",
     ownerAdditionalInfo: "Asset registered under Municipal Real Estate Act",
     condition: "Good",
     maintenanceStatus: "Up to Date",
-  });
+  };
+
+  // Form State
+  const [formData, setFormData] = useState(INITIAL_BLANK_FORM);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -121,20 +154,41 @@ export default function NewBuildingPage() {
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16">
         {/* Header */}
         <div className="pb-6 border-b border-slate-200">
-          <div className="flex items-center space-x-2">
-            <span className="text-[11px] font-mono uppercase bg-slate-900 text-white px-2 py-0.5 rounded font-semibold tracking-wider">
-              Registration Dossier
-            </span>
-            <span className="text-xs font-mono text-slate-500">
-              Civil Identity Generation
-            </span>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="text-[11px] font-mono uppercase bg-slate-900 text-white px-2 py-0.5 rounded font-semibold tracking-wider">
+                  Registration Dossier
+                </span>
+                <span className="text-xs font-mono text-slate-500">
+                  Civil Identity Generation
+                </span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">
+                Register New Building Passport
+              </h1>
+              <p className="text-xs text-slate-600 mt-1">
+                Fill in architectural specifications, structural parameters, and ownership records to generate an official digital passport and QR code.
+              </p>
+            </div>
+
+            <div className="flex items-center space-x-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setFormData(SAMPLE_DEMO_DATA)}
+                className="px-3 py-1.5 text-xs font-mono font-medium rounded border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors shadow-2xs cursor-pointer"
+              >
+                Load Sample Demo Details
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData(INITIAL_BLANK_FORM)}
+                className="px-3 py-1.5 text-xs font-mono font-medium rounded border border-slate-200 bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-800 transition-colors cursor-pointer"
+              >
+                Clear Form
+              </button>
+            </div>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">
-            Register New Building Passport
-          </h1>
-          <p className="text-xs text-slate-600 mt-1">
-            Fill in architectural specifications, structural parameters, and ownership records to generate an official digital passport and QR code.
-          </p>
         </div>
 
         {error && (
@@ -227,6 +281,7 @@ export default function NewBuildingPage() {
                   name="city"
                   value={formData.city}
                   onChange={handleChange}
+                  placeholder="e.g. New Delhi"
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-md focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900 text-slate-900"
                 />
               </div>
@@ -321,6 +376,7 @@ export default function NewBuildingPage() {
                   name="frameType"
                   value={formData.frameType}
                   onChange={handleChange}
+                  placeholder="e.g. Reinforced Concrete Moment Resisting Frame (RCC)"
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-md focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900 text-slate-900"
                 />
               </div>
@@ -334,6 +390,7 @@ export default function NewBuildingPage() {
                   name="foundation"
                   value={formData.foundation}
                   onChange={handleChange}
+                  placeholder="e.g. Cast-in-situ Friction Piles with Mat Cap"
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-md focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900 text-slate-900"
                 />
               </div>
@@ -364,6 +421,7 @@ export default function NewBuildingPage() {
                   name="exteriorCladding"
                   value={formData.exteriorCladding}
                   onChange={handleChange}
+                  placeholder="e.g. Low-E Double Glazed Curtain Wall & Aluminum Composite"
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-md focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900 text-slate-900"
                 />
               </div>
@@ -377,6 +435,7 @@ export default function NewBuildingPage() {
                   name="fireRating"
                   value={formData.fireRating}
                   onChange={handleChange}
+                  placeholder="e.g. 2-Hour Resistance"
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-md focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900 text-slate-900 font-mono"
                 />
               </div>
@@ -404,6 +463,7 @@ export default function NewBuildingPage() {
                     name="builderCompany"
                     value={formData.builderCompany}
                     onChange={handleChange}
+                    placeholder="e.g. National Infrastructure & Civil Ltd."
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md text-slate-900 text-xs"
                   />
                 </div>
@@ -416,6 +476,7 @@ export default function NewBuildingPage() {
                     name="builderName"
                     value={formData.builderName}
                     onChange={handleChange}
+                    placeholder="e.g. Er. Ramesh Chandra"
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md text-slate-900 text-xs"
                   />
                 </div>
@@ -428,6 +489,7 @@ export default function NewBuildingPage() {
                     name="builderContact"
                     value={formData.builderContact}
                     onChange={handleChange}
+                    placeholder="e.g. +91 11 2890 4000"
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md text-slate-900 text-xs font-mono"
                   />
                 </div>
@@ -459,6 +521,7 @@ export default function NewBuildingPage() {
                     name="ownerName"
                     value={formData.ownerName}
                     onChange={handleChange}
+                    placeholder="e.g. Metropolitan Property Trust"
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md text-slate-900 text-xs"
                   />
                 </div>
@@ -471,6 +534,7 @@ export default function NewBuildingPage() {
                     name="ownerContact"
                     value={formData.ownerContact}
                     onChange={handleChange}
+                    placeholder="e.g. +91 98100 12345"
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md text-slate-900 text-xs font-mono"
                   />
                 </div>
@@ -483,6 +547,7 @@ export default function NewBuildingPage() {
                     name="ownerEmail"
                     value={formData.ownerEmail}
                     onChange={handleChange}
+                    placeholder="e.g. assets@metrotrust.in"
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md text-slate-900 text-xs font-mono"
                   />
                 </div>

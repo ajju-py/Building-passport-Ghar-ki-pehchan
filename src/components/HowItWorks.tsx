@@ -36,7 +36,7 @@ export default function HowItWorks() {
       desc: "Generate a unique, immutable Building Passport ID (e.g., BP-2026-00125) and associated scannable QR token linking physical and digital domains.",
       icon: QrCode,
       details: [
-        "Unique cryptographic civil record identifier",
+        "Unique verified civil record identifier",
         "Physical scannable QR entrance plate specification",
         "Zero-bloat public-record access token",
       ],
@@ -116,7 +116,7 @@ export default function HowItWorks() {
             How Building Passport Works
           </h2>
           <p className="mt-4 text-base sm:text-lg text-slate-600 leading-relaxed font-normal">
-            A standardized seven-stage civil workflow that transforms raw construction documents and maintenance logs into an active, verifiable digital passport.
+            A standardized seven-step civil workflow that transforms raw construction documents and maintenance logs into an active, verifiable digital passport.
           </p>
         </div>
 
@@ -188,7 +188,7 @@ export default function HowItWorks() {
                   </div>
                   <div>
                     <span className="text-xs font-mono text-slate-500 uppercase tracking-wider block">
-                      STAGE {steps[activeStep].num} OF 07
+                      PHASE {steps[activeStep].num} OF 07
                     </span>
                     <h3 className="text-lg font-bold text-slate-900">
                       {steps[activeStep].title}

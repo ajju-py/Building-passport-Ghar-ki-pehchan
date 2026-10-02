@@ -151,7 +151,7 @@ export default function DashboardPage() {
           <div>
             <div className="flex items-center space-x-2">
               <span className="text-[11px] font-mono uppercase bg-slate-900 text-white px-2 py-0.5 rounded font-semibold tracking-wider">
-                Stage 2 Platform
+                Civil Digital Identity
               </span>
               <span className="text-xs font-mono text-slate-500">
                 Civil Infrastructure Ledger

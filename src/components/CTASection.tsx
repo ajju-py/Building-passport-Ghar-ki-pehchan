@@ -10,10 +10,10 @@ export default function CTASection() {
         <div className="arch-card p-8 sm:p-12 md:p-16 rounded-2xl bg-white text-center relative overflow-hidden shadow-sm border border-slate-300">
           {/* Subtle architectural background tag */}
           <div className="absolute top-4 left-6 text-[10px] font-mono text-slate-500 select-none hidden sm:block" aria-hidden="true">
-            + SPEC_STAGE: STAGE_1_PUBLIC
+            + ARCH_SPEC: CIVIL_DIGITAL_IDENTITY
           </div>
           <div className="absolute top-4 right-6 text-[10px] font-mono text-slate-500 select-none hidden sm:block" aria-hidden="true">
-            REF: ISO_19650_STANDARD
+            REF: STRUCTURED_CIVIL_RECORD
           </div>
 
           <div className="w-12 h-12 rounded-xl bg-slate-900 text-white flex items-center justify-center mx-auto mb-6 shadow-2xs">
@@ -45,7 +45,7 @@ export default function CTASection() {
               <span>Zero-bloat civil data architecture</span>
             </span>
             <span className="hidden sm:inline text-slate-300" aria-hidden="true">•</span>
-            <span className="hidden sm:inline">Stage 1 Public Specification</span>
+            <span className="hidden sm:inline">Decadal Civil Identity</span>
           </div>
         </div>
 

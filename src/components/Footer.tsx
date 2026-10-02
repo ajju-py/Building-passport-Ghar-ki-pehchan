@@ -28,7 +28,7 @@ export default function Footer() {
             </p>
             <div className="inline-flex items-center space-x-2 text-[11px] text-slate-400 bg-slate-900 px-3 py-1 rounded border border-slate-800">
               <span className="w-2 h-2 rounded-full bg-emerald-500 motion-safe:animate-pulse" aria-hidden="true"></span>
-              <span>STAGE 1 // PUBLIC PRODUCT HOMEPAGE</span>
+              <span>CIVIL DIGITAL IDENTITY PLATFORM</span>
             </div>
           </div>
 
@@ -64,16 +64,16 @@ export default function Footer() {
                 <span className="text-slate-200">Tailwind CSS v3 Architectural</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">STAGE 2 ARCHITECTURE:</span>
-                <span className="text-slate-200">Node.js / Express.js Backend</span>
+                <span className="text-slate-400">BACKEND:</span>
+                <span className="text-slate-200">Node.js / Express.js</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">STAGE 2 DATABASE:</span>
-                <span className="text-slate-200">PostgreSQL 17 Primary Engine</span>
+                <span className="text-slate-400">DATABASE:</span>
+                <span className="text-slate-200">PostgreSQL 17</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">STANDARDS:</span>
-                <span className="text-emerald-400 font-bold">ISO 19650 ALIGNED</span>
+                <span className="text-slate-400">DIGITAL RECORDS:</span>
+                <span className="text-slate-200">Structured Building Information</span>
               </div>
             </div>
           </div>
@@ -83,7 +83,7 @@ export default function Footer() {
         {/* Copyright & Back to Top */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-slate-400 text-[11px]">
           <div>
-            &copy; {new Date().getFullYear()} Building Passport. All rights reserved. Real Civil-Tech Product Platform.
+            &copy; {new Date().getFullYear()} Building Passport. All rights reserved. Civil Digital Identity Platform.
           </div>
           <button
             type="button"

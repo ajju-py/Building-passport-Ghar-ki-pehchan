@@ -57,7 +57,7 @@ export default function WhyPassport() {
     },
     {
       title: "Permanent Digital Archive",
-      desc: "ISO 19650 compliant digital preservation keeps civil records auditable, intact, and immune to physical deterioration.",
+      desc: "Structured digital preservation keeps civil records auditable, intact, and immune to physical deterioration.",
       icon: Layers,
     },
     {
