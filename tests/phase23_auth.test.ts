@@ -37,6 +37,7 @@ async function runTests() {
   async function clearCooldown() {
     if (testUserId) {
       await query("UPDATE otp_verifications SET created_at = NOW() - INTERVAL '35 seconds' WHERE user_id = $1;", [testUserId]);
+      await query("UPDATE users SET email_verified = false WHERE id = $1;", [testUserId]);
     }
   }
 
@@ -60,26 +61,23 @@ async function runTests() {
     testUserId = regResult.user.userId;
     assert(regResult.user.accountStatus === "pending_verification", "1. Registration creates pending account");
 
-    // 2. OTP generated (6 digits)
-    const emailOtp = DevNotificationProvider.getLatestDevOtp(testEmail, "EMAIL_VERIFICATION");
-    assert(!!emailOtp && /^[0-9]{6}$/.test(emailOtp), "2. OTP generated (6-digit numeric code)");
+    // 2. Verification token generated
+    const emailToken = DevNotificationProvider.getLatestDevToken(testEmail);
+    assert(!!emailToken && emailToken.length >= 32, "2. Cryptographic verification token generated");
 
-    // 3. OTP email provider called
+    // 3. Email provider called with template
     const dispatched = DevNotificationProvider.getAllDispatched(testEmail);
-    assert(dispatched.length >= 1 && dispatched[0].purpose === "EMAIL_VERIFICATION", "3. OTP email provider called with template");
+    assert(dispatched.length >= 1 && dispatched[0].purpose === "EMAIL_VERIFICATION", "3. Email provider called with template");
 
-    // 4. Correct OTP succeeds
-    const verifySuccess = await AuthService.verifyOtp({
-      destinationOrUserId: testEmail,
-      otp: emailOtp!,
-      purpose: "EMAIL_VERIFICATION",
-    });
-    assert(verifySuccess.success === true, "4. Correct OTP succeeds");
+    // 4. Correct token verification succeeds
+    const verifySuccess = await AuthService.verifyEmailToken(emailToken!);
+    assert(verifySuccess.success === true, "4. Correct verification token succeeds");
     const activeProfile = await UserService.getProfile(testUserId);
     assert(activeProfile?.accountStatus === "active", "Account status transitions to active on correct verification");
 
     // 5. Wrong OTP fails
     await clearCooldown();
+    await query("UPDATE users SET email_verified = false WHERE id = $1;", [testUserId]);
     await OtpService.createAndSendOtp({
       userId: testUserId,
       destination: testEmail,
@@ -211,8 +209,9 @@ async function runTests() {
     // -------------------------------------------------------------
     console.log("\n--- Part 2: Password Reset Suite ---");
 
-    // Fast-forward cooldown
+    // Fast-forward cooldown and ensure user is verified for password reset suite
     await query("UPDATE otp_verifications SET created_at = NOW() - INTERVAL '35 seconds' WHERE user_id = $1;", [testUserId]);
+    await query("UPDATE users SET email_verified = true, account_status = 'active' WHERE id = $1;", [testUserId]);
 
     // 13. Forgot password generic response
     const forgotKnown = await AuthService.forgotPassword(testEmail);

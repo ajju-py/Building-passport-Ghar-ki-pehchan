@@ -74,10 +74,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       try {
         const res = await api.auth.register(data);
-        setToken(res.token);
-        setUser(res.user);
-        localStorage.setItem("bp_auth_token", res.token);
-        localStorage.setItem("bp_auth_user", JSON.stringify(res.user));
+        if (res.token) {
+          setToken(res.token);
+          setUser(res.user);
+          localStorage.setItem("bp_auth_token", res.token);
+          localStorage.setItem("bp_auth_user", JSON.stringify(res.user));
+        }
         return {
           verificationSent: res.verificationSent,
           message: res.message,

@@ -107,7 +107,7 @@ export const api = {
   // Auth
   auth: {
     async register(payload: { name: string; email: string; password: string; role?: UserRole; mobile?: string }) {
-      return request<{ token: string; user: UserSession; verificationSent: boolean; message: string }>("/api/auth/register", {
+      return request<{ token?: string; user: UserSession; verificationSent: boolean; message: string }>("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

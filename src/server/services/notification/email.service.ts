@@ -77,10 +77,9 @@ export class EmailService {
     baseUrl?: string;
     userName?: string;
   }): Promise<EmailSendResult> {
-    const expiryMinutes = options.expiryMinutes || 10;
+    const expiryMinutes = options.expiryMinutes || 30;
     const template = EmailTemplates.getEmailVerificationTemplate({
       token: options.token,
-      otp: options.otp,
       expiryMinutes,
       baseUrl: options.baseUrl,
       userName: options.userName,

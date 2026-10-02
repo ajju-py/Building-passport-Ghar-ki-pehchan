@@ -156,7 +156,7 @@ export class AuthService {
     password: string;
     role?: UserRole;
     mobile?: string;
-  }): Promise<{ user: UserSession; token: string; verificationSent: boolean; message: string }> {
+  }): Promise<{ user: UserSession; verificationSent: boolean; message: string }> {
     const emailNorm = this.validateEmail(data.email);
     this.validatePasswordPolicy(data.password);
 
@@ -217,14 +217,14 @@ export class AuthService {
       );
     }
 
-    // Dispatch verification token and 6-digit OTP (10 min expiry)
+    // Dispatch verification link token (30 min expiry)
     let verificationSent = false;
     try {
       await OtpService.createAndSendVerificationToken({
         userId,
         userName: data.name.trim(),
         destination: emailNorm,
-        expiryMinutes: 10,
+        expiryMinutes: 30,
       });
       verificationSent = true;
     } catch (err: unknown) {
@@ -249,19 +249,10 @@ export class AuthService {
       accountStatus: initialStatus,
     };
 
-    const token = this.signToken({
-      id: sessionUser.userId,
-      name: sessionUser.name,
-      email: sessionUser.email,
-      role: sessionUser.role,
-      accountStatus: sessionUser.accountStatus,
-    });
-
     return {
       user: sessionUser,
-      token,
       verificationSent,
-      message: "Account registered successfully. Check your email for your 6-digit verification code.",
+      message: "Registration submitted successfully. We sent a verification link to your email.",
     };
   }
 
@@ -611,15 +602,26 @@ export class AuthService {
 
     if (res.rows.length > 0) {
       const user = res.rows[0];
-      if (user.account_status === "pending_verification" || !user.email_verified_at || user.email_verified === false) {
-        await OtpService.createAndSendVerificationToken({
-          userId: user.id,
-          userName: user.name,
-          destination: user.email,
-          baseUrl,
-          expiryMinutes: 10,
-        });
+      const isVerified = user.email_verified === true || (user.email_verified_at !== null && user.account_status === "active");
+      if (isVerified) {
+        return {
+          success: true,
+          message: "Email is already verified. You can sign in directly.",
+        };
       }
+
+      await OtpService.createAndSendVerificationToken({
+        userId: user.id,
+        userName: user.name,
+        destination: user.email,
+        baseUrl,
+        expiryMinutes: 30,
+      });
+
+      return {
+        success: true,
+        message: "A new verification email has been dispatched.",
+      };
     }
 
     return {

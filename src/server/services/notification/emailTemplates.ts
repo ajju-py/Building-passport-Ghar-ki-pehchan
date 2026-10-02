@@ -16,11 +16,11 @@ export interface EmailVerificationTemplateOptions {
 
 export class EmailTemplates {
   /**
-   * Generates email verification template with branding, recipient name, 6-digit OTP, verification link, button, expiry, and security notice.
+   * Generates email verification template with branding, recipient name, verification link button, 30-min expiry, and security notice.
    */
   public static getEmailVerificationTemplate(
     tokenOrOptions: string | EmailVerificationTemplateOptions,
-    expiryMinutesArg: number = 10
+    expiryMinutesArg: number = 30
   ): RenderedEmail {
     let token: string;
     let otp: string | undefined;
@@ -30,11 +30,10 @@ export class EmailTemplates {
 
     if (typeof tokenOrOptions === "string") {
       token = tokenOrOptions;
-      otp = tokenOrOptions.length === 6 && /^\d+$/.test(tokenOrOptions) ? tokenOrOptions : undefined;
     } else {
       token = tokenOrOptions.token;
       otp = tokenOrOptions.otp;
-      expiryMinutes = tokenOrOptions.expiryMinutes ?? 10;
+      expiryMinutes = tokenOrOptions.expiryMinutes ?? 30;
       candidateBaseUrl = tokenOrOptions.baseUrl;
       userName = tokenOrOptions.userName;
     }
@@ -43,28 +42,23 @@ export class EmailTemplates {
     const verificationUrl = `${baseUrl}/verify-email?token=${encodeURIComponent(token)}`;
     const subject = "Verify your Building Passport account";
 
-    const greetingText = userName ? `Hello ${userName},\n\n` : "";
-    const greetingHtml = userName ? `<p class="intro">Hello <strong>${userName}</strong>,</p>` : "";
+    const greetingName = userName ? userName.trim() : "Valued Stakeholder";
+    const otpSection = otp ? `\n\nVerification Code: ${otp}` : "";
 
     const text = `
-Building Passport — Ghar Ki Pehchan
-Civil Infrastructure & Asset Lifecycle Registry
+Building Passport
+Civil Digital Identity
 
-Verify Your Account
+Hello ${greetingName},
 
-${greetingText}Thank you for registering with the Building Passport civil registry platform.
-Please verify your email address to complete registration and activate your account.
+Your Building Passport account has been created.
+Click the link below to verify your email address:
 
-${otp ? `6-DIGIT VERIFICATION CODE:\n${otp}\n\n` : ""}Verify via Direct Link:
-${verificationUrl}
+${verificationUrl}${otpSection}
 
-This verification code and link will expire in ${expiryMinutes} minutes.
+This verification link expires in ${expiryMinutes} minutes and can only be used once.
 
-SECURITY ADVISORY:
-- Do not share this code or link with anyone. Municipal and platform administrators will never ask for your verification code.
-- If you did not create an account on Building Passport, no further action is required and you may safely disregard this email.
-
-Need help? Contact the Building Passport Administrative Office.
+If you did not create this account, you can safely ignore this email.
     `.trim();
 
     const html = `
@@ -83,9 +77,6 @@ Need help? Contact the Building Passport Administrative Office.
     .content { padding: 32px; }
     .content h2 { margin-top: 0; font-size: 18px; font-weight: 700; color: #0f172a; }
     .intro { font-size: 14px; color: #334155; margin-bottom: 20px; }
-    .otp-card { background: #f0fdf4; border: 2px solid #86efac; border-radius: 10px; text-align: center; padding: 20px; margin: 24px 0; }
-    .otp-sub { font-size: 12px; font-weight: 600; color: #166534; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
-    .otp-code { font-family: 'SF Mono', Consolas, Monaco, monospace; font-size: 34px; font-weight: 800; letter-spacing: 8px; color: #15803d; }
     .btn-container { text-align: center; margin: 28px 0; }
     .btn { display: inline-block; background-color: #0f172a; color: #ffffff !important; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-size: 14px; font-weight: 600; letter-spacing: 0.02em; text-align: center; }
     .btn:hover { background-color: #1e293b; }
@@ -101,35 +92,24 @@ Need help? Contact the Building Passport Administrative Office.
 <body>
   <div class="container">
     <div class="header">
-      <h1>Building Passport — Ghar Ki Pehchan</h1>
-      <p>Civil Infrastructure &amp; Asset Lifecycle Registry</p>
+      <h1>Building Passport</h1>
+      <p>Civil Digital Identity</p>
     </div>
     <div class="content">
       <h2>Verify your Building Passport account</h2>
-      ${greetingHtml}
+      <p class="intro">Hello <strong>${greetingName}</strong>,</p>
       <p class="intro">
-        Thank you for registering with the Building Passport civil registry platform. Enter the 6-digit verification code below in your registration screen or click the verification button to activate your account.
+        Your Building Passport account has been created. Click the button below to verify your email address:
       </p>
-
-      ${
-        otp
-          ? `
-      <div class="otp-card">
-        <div class="otp-sub">Your 6-Digit Verification Code</div>
-        <div class="otp-code">${otp}</div>
-      </div>
-      `
-          : ""
-      }
 
       <div class="btn-container">
         <a href="${verificationUrl}" class="btn" target="_blank" rel="noopener noreferrer">
-          Verify Account &amp; Activate Passport
+          Verify Email Address
         </a>
       </div>
 
       <div class="expiry">
-        This verification code and link will expire in <strong>${expiryMinutes} minutes</strong>.
+        This verification link expires in <strong>${expiryMinutes} minutes</strong> and can only be used once.
       </div>
 
       <div class="fallback-section">
@@ -138,11 +118,7 @@ Need help? Contact the Building Passport Administrative Office.
       </div>
 
       <div class="notice">
-        <strong>Security Advisory:</strong>
-        <ul style="margin: 8px 0 0 0; padding-left: 20px;">
-          <li>Do not share this code or link with anyone. Municipal and platform administrators will never ask for your code.</li>
-          <li>If you did not create an account on Building Passport, no further action is required and you may safely disregard this email.</li>
-        </ul>
+        If you did not create this account, you can safely ignore this email.
       </div>
     </div>
     <div class="footer">

@@ -315,19 +315,29 @@ app.get(
   "/api/auth/verify-email",
   createAuthRateLimiter("otp"),
   async (req: Request, res: Response) => {
-    try {
-      const token = req.query.token as string;
-      if (!token) {
-        res.status(400).json({
-          success: false,
-          error: "Verification token is required.",
-          reason: "MISSING_TOKEN",
-        });
+    const acceptsHtml = req.headers.accept?.includes("text/html");
+    const token = req.query.token as string;
+
+    if (!token) {
+      if (acceptsHtml) {
+        res.redirect("/verify-email?error=missing_token");
         return;
       }
+      res.status(400).json({
+        success: false,
+        error: "Invalid verification link",
+        reason: "MISSING_TOKEN",
+      });
+      return;
+    }
 
+    try {
       const result = await AuthService.verifyEmailToken(token);
       if (!result.success) {
+        if (acceptsHtml) {
+          res.redirect(`/verify-email?token=${encodeURIComponent(token)}&error=${encodeURIComponent(result.message)}`);
+          return;
+        }
         res.status(400).json({
           success: false,
           error: result.message,
@@ -336,14 +346,24 @@ app.get(
         return;
       }
 
+      if (acceptsHtml) {
+        res.redirect("/login?verified=true");
+        return;
+      }
+
       res.json({
         success: true,
         message: result.message,
       });
     } catch (err: unknown) {
+      const msg = (err as Error).message || "Email verification failed.";
+      if (acceptsHtml) {
+        res.redirect(`/verify-email?token=${encodeURIComponent(token)}&error=${encodeURIComponent(msg)}`);
+        return;
+      }
       res.status(400).json({
         success: false,
-        error: (err as Error).message || "Email verification failed.",
+        error: msg,
       });
     }
   }

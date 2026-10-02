@@ -59,6 +59,7 @@ async function runEmailVerificationTestSuite() {
     });
 
     createdUserId = regResult.user.userId;
+    assert.strictEqual(regResult.token, undefined, "Unverified registration must not issue a session JWT");
 
     const userRes = await query<{ account_status: string; email_verified: boolean; email_verified_at: Date | null }>(
       "SELECT account_status, email_verified, email_verified_at FROM users WHERE id = $1;",
@@ -111,7 +112,7 @@ async function runEmailVerificationTestSuite() {
     );
     const expiresAt = new Date(expRes.rows[0].expires_at).getTime();
     assert(expiresAt > Date.now(), "Token must expire in the future");
-    assert(expiresAt <= Date.now() + 65 * 60 * 1000, "Token expiry must be within expected timeframe (~60 mins)");
+    assert(expiresAt <= Date.now() + 35 * 60 * 1000, "Token expiry must be within expected timeframe (~30 mins)");
   })();
 
   // 5. Unverified user cannot perform normal login
@@ -417,8 +418,8 @@ async function runEmailVerificationTestSuite() {
     });
 
     const firstUserId = initialReg.user.userId;
-    const firstOtp = DevNotificationProvider.getLatestDevOtp(unverifiedEmail, "EMAIL_VERIFICATION");
-    assert(firstOtp, "Initial OTP must be dispatched");
+    const firstToken = DevNotificationProvider.getLatestDevToken(unverifiedEmail);
+    assert(firstToken !== undefined, "Initial verification token must be dispatched");
 
     // Fast-forward cooldown for testing
     await query(
@@ -449,25 +450,22 @@ async function runEmailVerificationTestSuite() {
     const pwdMatch = await bcrypt.compare("UpdatedPassword#2026", updatedUser.password);
     assert.strictEqual(pwdMatch, true, "Password hash must be updated to new credentials");
 
-    // Verify old OTP was consumed/invalidated
-    const oldOtpHash = crypto.createHash("sha256").update(firstOtp).digest("hex");
-    const oldOtpRes = await query<{ consumed_at: Date | null }>(
+    // Verify old token was consumed/invalidated
+    const oldTokenHash = crypto.createHash("sha256").update(firstToken!).digest("hex");
+    const oldTokenRes = await query<{ consumed_at: Date | null }>(
       "SELECT consumed_at FROM otp_verifications WHERE otp_hash = $1;",
-      [oldOtpHash]
+      [oldTokenHash]
     );
-    assert(oldOtpRes.rows[0].consumed_at !== null, "Previous OTP must be consumed/invalidated");
+    assert(oldTokenRes.rows[0].consumed_at !== null, "Previous token must be consumed/invalidated");
 
-    // Verify fresh OTP was issued
-    const secondOtp = DevNotificationProvider.getLatestDevOtp(unverifiedEmail, "EMAIL_VERIFICATION");
-    assert(secondOtp, "Fresh OTP must be generated");
+    // Verify fresh token was issued
+    const secondToken = DevNotificationProvider.getLatestDevToken(unverifiedEmail);
+    assert(secondToken !== undefined, "Fresh token must be generated");
+    assert.notStrictEqual(firstToken, secondToken, "Second token must be distinct from first token");
 
-    // Verify using fresh OTP succeeds
-    const verifyResult = await AuthService.verifyOtp({
-      destinationOrUserId: unverifiedEmail,
-      otp: secondOtp,
-      purpose: "EMAIL_VERIFICATION",
-    });
-    assert.strictEqual(verifyResult.success, true, "Verification with fresh OTP must succeed");
+    // Verify using fresh token succeeds
+    const verifyResult = await AuthService.verifyEmailToken(secondToken!);
+    assert.strictEqual(verifyResult.success, true, "Verification with fresh token must succeed");
 
     // User can now log in with updated credentials
     const loginResult = await AuthService.login({
@@ -479,7 +477,7 @@ async function runEmailVerificationTestSuite() {
     await query("DELETE FROM users WHERE id = $1;", [firstUserId]);
   })();
 
-  // 26. 6-digit OTP verification enforces maximum 3 attempts
+  // 26. 6-digit OTP verification enforces maximum 3 attempts (e.g. password reset flow)
   await test("26. 6-digit OTP verification enforces maximum 3 attempts before lockout", async () => {
     const attemptEmail = `attempts_test_${Date.now()}@civiltest.org`;
     const reg = await AuthService.register({
@@ -489,11 +487,18 @@ async function runEmailVerificationTestSuite() {
       role: "owner",
     });
 
+    // Create an OTP for password reset flow
+    await OtpService.createAndSendOtp({
+      destination: attemptEmail,
+      purpose: "PASSWORD_RESET",
+      userId: reg.user.userId,
+    });
+
     // Attempt 1 with wrong OTP
     const res1 = await OtpService.verifyOtp({
       destinationOrUserId: attemptEmail,
       otp: "000000",
-      purpose: "EMAIL_VERIFICATION",
+      purpose: "PASSWORD_RESET",
     });
     assert.strictEqual(res1.success, false, "Wrong OTP must fail");
     assert(res1.message.includes("2 attempt(s) remaining"), "Must indicate 2 attempts remaining");
@@ -502,7 +507,7 @@ async function runEmailVerificationTestSuite() {
     const res2 = await OtpService.verifyOtp({
       destinationOrUserId: attemptEmail,
       otp: "000001",
-      purpose: "EMAIL_VERIFICATION",
+      purpose: "PASSWORD_RESET",
     });
     assert.strictEqual(res2.success, false, "Wrong OTP must fail");
     assert(res2.message.includes("1 attempt(s) remaining"), "Must indicate 1 attempt remaining");
@@ -511,17 +516,17 @@ async function runEmailVerificationTestSuite() {
     const res3 = await OtpService.verifyOtp({
       destinationOrUserId: attemptEmail,
       otp: "000002",
-      purpose: "EMAIL_VERIFICATION",
+      purpose: "PASSWORD_RESET",
     });
     assert.strictEqual(res3.success, false, "Exhausted OTP must fail");
     assert(res3.message.includes("Maximum verification attempts exceeded"), "Must lock out code");
 
     // Even if correct OTP is now provided, it must be rejected as consumed/locked out
-    const correctOtp = DevNotificationProvider.getLatestDevOtp(attemptEmail, "EMAIL_VERIFICATION")!;
+    const correctOtp = DevNotificationProvider.getLatestDevOtp(attemptEmail, "PASSWORD_RESET")!;
     const res4 = await OtpService.verifyOtp({
       destinationOrUserId: attemptEmail,
       otp: correctOtp,
-      purpose: "EMAIL_VERIFICATION",
+      purpose: "PASSWORD_RESET",
     });
     assert.strictEqual(res4.success, false, "Consumed/exhausted OTP must fail");
 

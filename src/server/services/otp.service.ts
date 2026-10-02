@@ -262,10 +262,9 @@ export class OtpService {
     destination: string;
     expiresAt: string;
     token: string;
-    otp?: string;
   }> {
     const destNorm = params.destination.trim().toLowerCase();
-    const expiryMinutes = params.expiryMinutes || this.OTP_EXPIRY_MINUTES;
+    const expiryMinutes = params.expiryMinutes || 30;
 
     // 1. Enforce resend cooldown (rate limit)
     const recentOtpRes = await query<{ created_at: Date }>(
@@ -296,23 +295,19 @@ export class OtpService {
       [params.userId, destNorm]
     );
 
-    // 3. Generate cryptographic 64-char token & 6-digit OTP
+    // 3. Generate cryptographic 64-char token (single-use, randomBytes)
     const rawToken = this.generateSecureToken(32);
     const tokenHash = this.hashOtp(rawToken);
-    const plaintextOtp = this.generateSecureOtp();
-    const otpHash = this.hashOtp(plaintextOtp);
 
     const tokenId = `tok_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
-    const otpId = `otp_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
     const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
 
-    // 4. Persist to PostgreSQL (only SHA-256 hashes are stored, never plaintext tokens)
+    // 4. Persist to PostgreSQL (only SHA-256 hash is stored, never plaintext token)
     await query(
       `INSERT INTO otp_verifications (
         id, user_id, purpose, destination, otp_hash, expires_at, attempt_count, max_attempts, created_at
-      ) VALUES ($1, $2, 'EMAIL_VERIFICATION', $3, $4, $5, 0, 1, NOW()),
-               ($6, $2, 'EMAIL_VERIFICATION', $3, $7, $5, 0, $8, NOW());`,
-      [tokenId, params.userId, destNorm, tokenHash, expiresAt, otpId, otpHash, this.MAX_ATTEMPTS]
+      ) VALUES ($1, $2, 'EMAIL_VERIFICATION', $3, $4, $5, 0, 1, NOW());`,
+      [tokenId, params.userId, destNorm, tokenHash, expiresAt]
     );
 
     // 5. Dispatch via Email Service (Resend)
@@ -320,7 +315,6 @@ export class OtpService {
       to: destNorm,
       userName: params.userName,
       token: rawToken,
-      otp: plaintextOtp,
       expiryMinutes,
       baseUrl: params.baseUrl,
     });
@@ -331,7 +325,6 @@ export class OtpService {
       destination: this.maskDestination(destNorm),
       expiresAt: expiresAt.toISOString(),
       token: rawToken,
-      otp: plaintextOtp,
     };
   }
 
@@ -349,7 +342,7 @@ export class OtpService {
       return {
         success: false,
         reason: "MISSING_TOKEN",
-        message: "Verification token is required.",
+        message: "Invalid verification link",
       };
     }
 
@@ -369,7 +362,7 @@ export class OtpService {
       return {
         success: false,
         reason: "INVALID_TOKEN",
-        message: "Invalid verification link or token. Please check the URL or request a new verification email.",
+        message: "Invalid verification link",
       };
     }
 
@@ -380,7 +373,7 @@ export class OtpService {
       return {
         success: false,
         reason: "ALREADY_USED",
-        message: "This verification token has already been used. Please log in or request a new link.",
+        message: "Email is already verified",
       };
     }
 
@@ -389,7 +382,7 @@ export class OtpService {
       return {
         success: false,
         reason: "EXPIRED",
-        message: "This verification token has expired. Please request a new verification email.",
+        message: "Verification link has expired",
       };
     }
 
@@ -414,7 +407,7 @@ export class OtpService {
 
     return {
       success: true,
-      message: "Email address verified successfully. Your account is now active.",
+      message: "Email verified successfully.",
       userId: record.user_id,
     };
   }

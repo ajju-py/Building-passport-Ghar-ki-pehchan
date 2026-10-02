@@ -28,18 +28,24 @@ type VerificationState =
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
+  const errorParam = searchParams.get("error");
 
   const [state, setState] = useState<VerificationState>(() => {
+    if (errorParam) {
+      if (/already\s*verified|already\s*used|already\s*been\s*used/i.test(errorParam)) return "already_used";
+      if (/expired/i.test(errorParam)) return "expired";
+      return "error";
+    }
     return !token || !token.trim() ? "missing_token" : "verifying";
   });
-  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [errorMessage, setErrorMessage] = useState<string>(errorParam || "");
   const [resendEmail, setResendEmail] = useState("");
   const [resendLoading, setResendLoading] = useState(false);
   const [resendMessage, setResendMessage] = useState<string | null>(null);
   const [resendError, setResendError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!token || !token.trim()) {
+    if (errorParam || !token || !token.trim()) {
       return;
     }
 
@@ -56,7 +62,7 @@ function VerifyEmailContent() {
         const msg = (err as Error).message || "Verification failed";
         setErrorMessage(msg);
 
-        if (/already\s*been\s*used/i.test(msg) || /already\s*used/i.test(msg)) {
+        if (/already\s*verified|already\s*been\s*used|already\s*used/i.test(msg)) {
           setState("already_used");
         } else if (/expired/i.test(msg)) {
           setState("expired");
@@ -71,7 +77,7 @@ function VerifyEmailContent() {
     return () => {
       isMounted = false;
     };
-  }, [token]);
+  }, [token, errorParam]);
 
   const handleResend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,10 +160,14 @@ function VerifyEmailContent() {
               <ShieldCheck className="w-8 h-8" />
             </div>
             <h2 className="text-base font-bold text-slate-900 mb-2">
-              Verification Link Already Used
+              {errorMessage && /already\s*verified/i.test(errorMessage)
+                ? "Email Already Verified"
+                : "Verification Link Already Used"}
             </h2>
             <p className="text-xs text-slate-600 leading-relaxed mb-6">
-              This verification token has already been consumed. If your account is active, you may sign in directly with your password.
+              {errorMessage && /already\s*verified/i.test(errorMessage)
+                ? "Your email address has already been verified and your account is active. You may sign in directly with your credentials."
+                : "This verification token has already been consumed. If your account is active, you may sign in directly with your password."}
             </p>
             <div className="space-y-3">
               <Link
@@ -284,7 +294,9 @@ function VerifyEmailContent() {
               <XCircle className="w-8 h-8" />
             </div>
             <h2 className="text-base font-bold text-slate-900 mb-2">
-              Verification Failed
+              {errorMessage && /invalid/i.test(errorMessage)
+                ? "Invalid Verification Link"
+                : "Verification Failed"}
             </h2>
             <p className="text-xs text-rose-700 mb-4 font-medium">
               {errorMessage || "The verification link is invalid or malformed."}

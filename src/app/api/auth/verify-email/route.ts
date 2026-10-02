@@ -81,12 +81,16 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const token = searchParams.get("token");
+  const acceptsHtml = req.headers.get("accept")?.includes("text/html");
 
   if (!token) {
+    if (acceptsHtml) {
+      return NextResponse.redirect(new URL("/verify-email?error=missing_token", req.url));
+    }
     return NextResponse.json(
       {
         success: false,
-        error: "Verification token is required.",
+        error: "Invalid verification link",
         reason: "MISSING_TOKEN",
       },
       { status: 400 }
@@ -96,6 +100,11 @@ export async function GET(req: NextRequest) {
   try {
     const result = await AuthService.verifyEmailToken(token);
     if (!result.success) {
+      if (acceptsHtml) {
+        return NextResponse.redirect(
+          new URL(`/verify-email?token=${encodeURIComponent(token)}&error=${encodeURIComponent(result.message)}`, req.url)
+        );
+      }
       return NextResponse.json(
         {
           success: false,
@@ -106,15 +115,25 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    if (acceptsHtml) {
+      return NextResponse.redirect(new URL("/login?verified=true", req.url));
+    }
+
     return NextResponse.json({
       success: true,
       message: result.message,
     });
   } catch (err: unknown) {
+    const msg = (err as Error).message || "Email verification failed.";
+    if (acceptsHtml) {
+      return NextResponse.redirect(
+        new URL(`/verify-email?token=${encodeURIComponent(token)}&error=${encodeURIComponent(msg)}`, req.url)
+      );
+    }
     return NextResponse.json(
       {
         success: false,
-        error: (err as Error).message || "Email verification failed.",
+        error: msg,
       },
       { status: 400 }
     );
