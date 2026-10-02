@@ -1,3 +1,5 @@
+import { resolveVerificationBaseUrl } from "../../config/env";
+
 export interface RenderedEmail {
   subject: string;
   text: string;
@@ -22,7 +24,7 @@ export class EmailTemplates {
     let token: string;
     let otp: string | undefined;
     let expiryMinutes = expiryMinutesArg;
-    let baseUrl = process.env.PUBLIC_APP_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    let candidateBaseUrl: string | undefined;
 
     if (typeof tokenOrOptions === "string") {
       token = tokenOrOptions;
@@ -31,10 +33,11 @@ export class EmailTemplates {
       token = tokenOrOptions.token;
       otp = tokenOrOptions.otp;
       expiryMinutes = tokenOrOptions.expiryMinutes ?? 10;
-      if (tokenOrOptions.baseUrl) baseUrl = tokenOrOptions.baseUrl;
+      candidateBaseUrl = tokenOrOptions.baseUrl;
     }
 
-    const verificationUrl = `${baseUrl.replace(/\/+$/, "")}/verify-email?token=${encodeURIComponent(token)}`;
+    const baseUrl = resolveVerificationBaseUrl(candidateBaseUrl);
+    const verificationUrl = `${baseUrl}/verify-email?token=${encodeURIComponent(token)}`;
     const subject = "Verify your Building Passport account";
 
     const text = `

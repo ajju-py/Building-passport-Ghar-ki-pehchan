@@ -85,11 +85,95 @@ if (isShowcaseMode) {
   console.warn("=====================================================================");
 }
 
+export const CANONICAL_PUBLIC_APP_URL = "https://mdm-building-passport.vercel.app";
+
+export interface VerificationUrlValidationResult {
+  valid: boolean;
+  resolvedUrl: string;
+  rejectedReason?: string;
+}
+
+/**
+ * Validates candidate verification base URLs.
+ * Rejects localhost, 127.0.0.1, LAN IPs, Tailscale IPs, and Cloudflare tunnels.
+ */
+export function validateVerificationBaseUrl(candidateUrl?: string): VerificationUrlValidationResult {
+  const raw = candidateUrl?.trim() || process.env.PUBLIC_APP_URL?.trim() || CANONICAL_PUBLIC_APP_URL;
+  const normalized = raw.replace(/\/+$/, "");
+
+  try {
+    const parsed = new URL(normalized);
+    const hostname = parsed.hostname.toLowerCase();
+    const protocol = parsed.protocol.toLowerCase();
+
+    if (protocol !== "https:") {
+      return {
+        valid: false,
+        resolvedUrl: CANONICAL_PUBLIC_APP_URL,
+        rejectedReason: `Protocol must be https: (received ${protocol})`,
+      };
+    }
+
+    if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "0.0.0.0" || hostname === "::1") {
+      return {
+        valid: false,
+        resolvedUrl: CANONICAL_PUBLIC_APP_URL,
+        rejectedReason: `Local loopback hosts are prohibited: ${hostname}`,
+      };
+    }
+
+    if (hostname.startsWith("192.168.") || hostname.startsWith("10.") || /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname)) {
+      return {
+        valid: false,
+        resolvedUrl: CANONICAL_PUBLIC_APP_URL,
+        rejectedReason: `Private LAN IP addresses are prohibited: ${hostname}`,
+      };
+    }
+
+    if (hostname.startsWith("100.")) {
+      return {
+        valid: false,
+        resolvedUrl: CANONICAL_PUBLIC_APP_URL,
+        rejectedReason: `Tailscale / CGNAT addresses are prohibited: ${hostname}`,
+      };
+    }
+
+    if (hostname.endsWith(".trycloudflare.com") || hostname === "trycloudflare.com") {
+      return {
+        valid: false,
+        resolvedUrl: CANONICAL_PUBLIC_APP_URL,
+        rejectedReason: `Cloudflare tunnel hosts are prohibited: ${hostname}`,
+      };
+    }
+
+    return {
+      valid: true,
+      resolvedUrl: normalized,
+    };
+  } catch {
+    return {
+      valid: false,
+      resolvedUrl: CANONICAL_PUBLIC_APP_URL,
+      rejectedReason: `Malformed URL: ${raw}`,
+    };
+  }
+}
+
+/**
+ * Resolves the base URL for email verification links.
+ * Strictly guarantees that verification URLs use the canonical public Vercel URL
+ * and never use localhost, LAN IPs, Tailscale IPs, or Cloudflare tunnels.
+ */
+export function resolveVerificationBaseUrl(candidateUrl?: string): string {
+  const validation = validateVerificationBaseUrl(candidateUrl);
+  return validation.resolvedUrl;
+}
+
 const rawAppUrl = process.env.PUBLIC_APP_URL?.trim() || process.env.NEXT_PUBLIC_APP_URL?.trim();
 const resolvedAppUrl =
   rawAppUrl ||
   (nodeEnv === "production"
-    ? "https://mdm-building-passport.vercel.app"
+    ? CANONICAL_PUBLIC_APP_URL
     : "http://localhost:3000");
 
 export const env = {
@@ -105,7 +189,7 @@ export const env = {
   JWT_SECRET: resolvedJwtSecret,
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || "7d",
   APP_URL: resolvedAppUrl,
-  PUBLIC_APP_URL: resolvedAppUrl,
+  PUBLIC_APP_URL: resolveVerificationBaseUrl(process.env.PUBLIC_APP_URL),
   API_URL: process.env.NEXT_PUBLIC_API_URL || `${resolvedAppUrl}/api`,
   STORAGE_DRIVER: process.env.STORAGE_DRIVER || "local",
   UPLOAD_DIR: path.resolve(process.cwd(), process.env.UPLOAD_DIR || "uploads"),

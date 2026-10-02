@@ -7,6 +7,12 @@ import { EmailService } from "../src/server/services/notification/email.service"
 import { DevNotificationProvider } from "../src/server/services/notification/devNotification.provider";
 import { ResendEmailProvider } from "../src/server/services/notification/resend.provider";
 import { query } from "../src/server/db/postgres";
+import {
+  CANONICAL_PUBLIC_APP_URL,
+  validateVerificationBaseUrl,
+  resolveVerificationBaseUrl,
+} from "../src/server/config/env";
+import { EmailTemplates } from "../src/server/services/notification/emailTemplates";
 
 interface TestStats {
   passed: number;
@@ -279,6 +285,100 @@ async function runEmailVerificationTestSuite() {
     const resetOtp = DevNotificationProvider.getLatestDevOtp(testEmail, "PASSWORD_RESET");
     assert(resetOtp !== undefined, "Password reset OTP must be recorded in email dispatch sink");
     assert.strictEqual(resetOtp.length, 6, "Reset OTP must be 6 digits");
+  })();
+
+  // 16. Verification URL defaults to canonical Vercel showcase URL
+  await test("16. Verification URL defaults to canonical Vercel URL (https://mdm-building-passport.vercel.app)", () => {
+    const resolved = resolveVerificationBaseUrl();
+    assert.strictEqual(resolved, CANONICAL_PUBLIC_APP_URL, "Default URL must be canonical Vercel URL");
+  })();
+
+  // 17. Verification URL rejects localhost
+  await test("17. Verification URL rejects localhost configuration and resolves to Vercel URL", () => {
+    const check = validateVerificationBaseUrl("http://localhost:3000");
+    assert.strictEqual(check.valid, false, "Localhost must be marked invalid");
+    assert.strictEqual(check.resolvedUrl, CANONICAL_PUBLIC_APP_URL, "Localhost must resolve to canonical Vercel URL");
+  })();
+
+  // 18. Verification URL rejects 127.0.0.1
+  await test("18. Verification URL rejects 127.0.0.1 configuration and resolves to Vercel URL", () => {
+    const check = validateVerificationBaseUrl("http://127.0.0.1:5000");
+    assert.strictEqual(check.valid, false, "127.0.0.1 must be marked invalid");
+    assert.strictEqual(check.resolvedUrl, CANONICAL_PUBLIC_APP_URL, "127.0.0.1 must resolve to canonical Vercel URL");
+  })();
+
+  // 19. Verification URL rejects LAN IPs
+  await test("19. Verification URL rejects LAN IP (192.168.x.x) and resolves to Vercel URL", () => {
+    const check = validateVerificationBaseUrl("http://192.168.1.50:3000");
+    assert.strictEqual(check.valid, false, "LAN IP must be marked invalid");
+    assert.strictEqual(check.resolvedUrl, CANONICAL_PUBLIC_APP_URL, "LAN IP must resolve to canonical Vercel URL");
+  })();
+
+  // 20. Verification URL rejects Tailscale IPs
+  await test("20. Verification URL rejects Tailscale CGNAT IP (100.70.x.x) and resolves to Vercel URL", () => {
+    const check = validateVerificationBaseUrl("https://100.70.1.2:3000");
+    assert.strictEqual(check.valid, false, "Tailscale IP must be marked invalid");
+    assert.strictEqual(check.resolvedUrl, CANONICAL_PUBLIC_APP_URL, "Tailscale IP must resolve to canonical Vercel URL");
+  })();
+
+  // 21. Verification URL rejects Cloudflare tunnel host
+  await test("21. Verification URL rejects Cloudflare tunnel (*.trycloudflare.com) and resolves to Vercel URL", () => {
+    const check = validateVerificationBaseUrl("https://demo-tunnel.trycloudflare.com");
+    assert.strictEqual(check.valid, false, "Cloudflare tunnel must be marked invalid");
+    assert.strictEqual(check.resolvedUrl, CANONICAL_PUBLIC_APP_URL, "Cloudflare tunnel must resolve to canonical Vercel URL");
+  })();
+
+  // 22. Template renders canonical Vercel verification URL even if localhost is requested
+  await test("22. Email template renders canonical Vercel verification URL even if localhost is passed as baseUrl", () => {
+    const template = EmailTemplates.getEmailVerificationTemplate({
+      token: "test_token_abc_123",
+      baseUrl: "http://localhost:3000",
+    });
+
+    assert(
+      template.text.includes("https://mdm-building-passport.vercel.app/verify-email?token=test_token_abc_123"),
+      "Plaintext email must contain public Vercel verification URL"
+    );
+    assert(
+      template.html.includes("https://mdm-building-passport.vercel.app/verify-email?token=test_token_abc_123"),
+      "HTML email must contain public Vercel verification URL"
+    );
+    assert(
+      !template.text.includes("localhost"),
+      "Plaintext email must never contain localhost in verification link"
+    );
+    assert(
+      !template.html.includes("localhost:3000/verify-email"),
+      "HTML email must never contain localhost in verification link"
+    );
+  })();
+
+  // 23. Dispatched verification email during user registration strictly uses canonical Vercel URL
+  await test("23. Dispatched registration email strictly uses canonical Vercel URL", async () => {
+    const verifEmail = `vercel_url_audit_${Date.now()}@civiltest.org`;
+    const reg = await AuthService.register({
+      name: "Vercel URL Auditor",
+      email: verifEmail,
+      password: "StrongPassword#2026",
+      role: "owner",
+    });
+
+    const dispatched = DevNotificationProvider.getAllDispatched(verifEmail);
+    assert(dispatched.length >= 1, "Verification email must be dispatched");
+    const email = dispatched[0];
+
+    assert(
+      email.html.includes("https://mdm-building-passport.vercel.app/verify-email?token="),
+      "Dispatched HTML email must contain public Vercel URL"
+    );
+    assert(
+      email.text.includes("https://mdm-building-passport.vercel.app/verify-email?token="),
+      "Dispatched text email must contain public Vercel URL"
+    );
+    assert(!email.text.includes("localhost"), "Dispatched text must not contain localhost");
+    assert(!email.html.includes("trycloudflare.com"), "Dispatched HTML must not contain trycloudflare.com");
+
+    await query("DELETE FROM users WHERE id = $1;", [reg.user.userId]);
   })();
 
   // Cleanup test user
