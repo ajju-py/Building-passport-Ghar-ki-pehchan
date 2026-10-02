@@ -75,13 +75,15 @@ export class EmailService {
     otp?: string;
     expiryMinutes?: number;
     baseUrl?: string;
+    userName?: string;
   }): Promise<EmailSendResult> {
-    const expiryMinutes = options.expiryMinutes || 60;
+    const expiryMinutes = options.expiryMinutes || 10;
     const template = EmailTemplates.getEmailVerificationTemplate({
       token: options.token,
       otp: options.otp,
       expiryMinutes,
       baseUrl: options.baseUrl,
+      userName: options.userName,
     });
 
     const provider = this.getProvider();
@@ -123,16 +125,27 @@ export class EmailService {
     otp: string;
     purpose: OtpPurpose;
     expiryMinutes?: number;
+    userName?: string;
   }): Promise<EmailSendResult> {
     const expiryMinutes = options.expiryMinutes || 10;
     let template;
 
     if (options.purpose === "EMAIL_VERIFICATION") {
-      template = EmailTemplates.getEmailVerificationTemplate(options.otp, expiryMinutes);
+      template = EmailTemplates.getEmailVerificationTemplate({
+        token: options.otp,
+        otp: options.otp,
+        expiryMinutes,
+        userName: options.userName,
+      });
     } else if (options.purpose === "PASSWORD_RESET") {
       template = EmailTemplates.getPasswordResetTemplate(options.otp, expiryMinutes);
     } else {
-      template = EmailTemplates.getEmailVerificationTemplate(options.otp, expiryMinutes);
+      template = EmailTemplates.getEmailVerificationTemplate({
+        token: options.otp,
+        otp: options.otp,
+        expiryMinutes,
+        userName: options.userName,
+      });
     }
 
     const provider = this.getProvider();

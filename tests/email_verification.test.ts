@@ -381,6 +381,190 @@ async function runEmailVerificationTestSuite() {
     await query("DELETE FROM users WHERE id = $1;", [reg.user.userId]);
   })();
 
+  // 24. CASE A: Duplicate registration for verified account is strictly blocked
+  await test("24. CASE A: Duplicate registration for verified account throws conflict error", async () => {
+    // Note: createdUserId was verified in test 8
+    let conflictThrown = false;
+    let conflictMsg = "";
+    try {
+      await AuthService.register({
+        name: "Duplicate User Attempt",
+        email: testEmail,
+        password: "AnotherPassword#2026",
+        role: "owner",
+      });
+    } catch (err: unknown) {
+      conflictThrown = true;
+      conflictMsg = (err as Error).message;
+    }
+
+    assert.strictEqual(conflictThrown, true, "Must throw error on verified user registration");
+    assert.strictEqual(
+      conflictMsg,
+      "An account with this email address already exists.",
+      "Must return exact canonical conflict message"
+    );
+  })();
+
+  // 25. CASE B: Registration for existing unverified account safely restarts verification
+  await test("25. CASE B: Registration for unverified account restarts verification safely", async () => {
+    const unverifiedEmail = `restart_verif_${Date.now()}@civiltest.org`;
+    const initialReg = await AuthService.register({
+      name: "Initial Name",
+      email: unverifiedEmail,
+      password: "InitialPassword#2026",
+      role: "owner",
+    });
+
+    const firstUserId = initialReg.user.userId;
+    const firstOtp = DevNotificationProvider.getLatestDevOtp(unverifiedEmail, "EMAIL_VERIFICATION");
+    assert(firstOtp, "Initial OTP must be dispatched");
+
+    // Fast-forward cooldown for testing
+    await query(
+      "UPDATE otp_verifications SET created_at = NOW() - INTERVAL '35 seconds' WHERE destination = $1;",
+      [unverifiedEmail]
+    );
+
+    // Second registration attempt with updated name and password
+    const restartReg = await AuthService.register({
+      name: "Updated Name",
+      email: unverifiedEmail,
+      password: "UpdatedPassword#2026",
+      role: "owner",
+    });
+
+    assert.strictEqual(restartReg.user.userId, firstUserId, "Must reuse existing user record");
+    assert.strictEqual(restartReg.verificationSent, true, "Must dispatch fresh verification");
+
+    // Verify user record in DB was safely updated with new credentials
+    const updatedUserRes = await query<{ name: string; password: string; account_status: string; email_verified: boolean }>(
+      "SELECT name, password, account_status, email_verified FROM users WHERE id = $1;",
+      [firstUserId]
+    );
+    const updatedUser = updatedUserRes.rows[0];
+    assert.strictEqual(updatedUser.name, "Updated Name", "User name must be updated");
+    assert.strictEqual(updatedUser.account_status, "pending_verification", "Status must remain pending_verification");
+    assert.strictEqual(updatedUser.email_verified, false, "email_verified must remain false");
+    const pwdMatch = await bcrypt.compare("UpdatedPassword#2026", updatedUser.password);
+    assert.strictEqual(pwdMatch, true, "Password hash must be updated to new credentials");
+
+    // Verify old OTP was consumed/invalidated
+    const oldOtpHash = crypto.createHash("sha256").update(firstOtp).digest("hex");
+    const oldOtpRes = await query<{ consumed_at: Date | null }>(
+      "SELECT consumed_at FROM otp_verifications WHERE otp_hash = $1;",
+      [oldOtpHash]
+    );
+    assert(oldOtpRes.rows[0].consumed_at !== null, "Previous OTP must be consumed/invalidated");
+
+    // Verify fresh OTP was issued
+    const secondOtp = DevNotificationProvider.getLatestDevOtp(unverifiedEmail, "EMAIL_VERIFICATION");
+    assert(secondOtp, "Fresh OTP must be generated");
+
+    // Verify using fresh OTP succeeds
+    const verifyResult = await AuthService.verifyOtp({
+      destinationOrUserId: unverifiedEmail,
+      otp: secondOtp,
+      purpose: "EMAIL_VERIFICATION",
+    });
+    assert.strictEqual(verifyResult.success, true, "Verification with fresh OTP must succeed");
+
+    // User can now log in with updated credentials
+    const loginResult = await AuthService.login({
+      email: unverifiedEmail,
+      password: "UpdatedPassword#2026",
+    });
+    assert(loginResult.token, "Login with updated password must succeed");
+
+    await query("DELETE FROM users WHERE id = $1;", [firstUserId]);
+  })();
+
+  // 26. 6-digit OTP verification enforces maximum 3 attempts
+  await test("26. 6-digit OTP verification enforces maximum 3 attempts before lockout", async () => {
+    const attemptEmail = `attempts_test_${Date.now()}@civiltest.org`;
+    const reg = await AuthService.register({
+      name: "Attempt Tester",
+      email: attemptEmail,
+      password: "ValidPassword#2026",
+      role: "owner",
+    });
+
+    // Attempt 1 with wrong OTP
+    const res1 = await OtpService.verifyOtp({
+      destinationOrUserId: attemptEmail,
+      otp: "000000",
+      purpose: "EMAIL_VERIFICATION",
+    });
+    assert.strictEqual(res1.success, false, "Wrong OTP must fail");
+    assert(res1.message.includes("2 attempt(s) remaining"), "Must indicate 2 attempts remaining");
+
+    // Attempt 2 with wrong OTP
+    const res2 = await OtpService.verifyOtp({
+      destinationOrUserId: attemptEmail,
+      otp: "000001",
+      purpose: "EMAIL_VERIFICATION",
+    });
+    assert.strictEqual(res2.success, false, "Wrong OTP must fail");
+    assert(res2.message.includes("1 attempt(s) remaining"), "Must indicate 1 attempt remaining");
+
+    // Attempt 3 with wrong OTP (exhausts attempts)
+    const res3 = await OtpService.verifyOtp({
+      destinationOrUserId: attemptEmail,
+      otp: "000002",
+      purpose: "EMAIL_VERIFICATION",
+    });
+    assert.strictEqual(res3.success, false, "Exhausted OTP must fail");
+    assert(res3.message.includes("Maximum verification attempts exceeded"), "Must lock out code");
+
+    // Even if correct OTP is now provided, it must be rejected as consumed/locked out
+    const correctOtp = DevNotificationProvider.getLatestDevOtp(attemptEmail, "EMAIL_VERIFICATION")!;
+    const res4 = await OtpService.verifyOtp({
+      destinationOrUserId: attemptEmail,
+      otp: correctOtp,
+      purpose: "EMAIL_VERIFICATION",
+    });
+    assert.strictEqual(res4.success, false, "Consumed/exhausted OTP must fail");
+
+    await query("DELETE FROM users WHERE id = $1;", [reg.user.userId]);
+  })();
+
+  // 27. Delivery failure rolls back newly registered user record
+  await test("27. Delivery failure rolls back newly registered user record and throws explicit error", async () => {
+    const failEmail = `fail_delivery_${Date.now()}@civiltest.org`;
+
+    // Temporarily replace provider with one that fails
+    const failingProvider = {
+      name: "FailingProvider",
+      sendEmail: async () => ({ success: false, error: "Simulated upstream provider outage" }),
+      sendSms: async () => ({ success: false, error: "Not supported" }),
+    };
+    EmailService.setProvider(failingProvider);
+
+    let errorThrown = false;
+    let capturedError = "";
+    try {
+      await AuthService.register({
+        name: "Rollback Tester",
+        email: failEmail,
+        password: "ValidPassword#2026",
+        role: "owner",
+      });
+    } catch (err: unknown) {
+      errorThrown = true;
+      capturedError = (err as Error).message;
+    }
+
+    // Restore DevProvider
+    EmailService.setProvider(devProvider);
+
+    assert.strictEqual(errorThrown, true, "Must throw when delivery fails");
+    assert(capturedError.includes("Unable to deliver verification email"), "Error message must indicate delivery failure");
+
+    // Verify user was NOT saved (rolled back)
+    const checkUser = await query("SELECT id FROM users WHERE email = $1;", [failEmail]);
+    assert.strictEqual(checkUser.rows.length, 0, "User record must be rolled back on delivery failure");
+  })();
+
   // Cleanup test user
   await query("DELETE FROM users WHERE id = $1;", [createdUserId]);
 

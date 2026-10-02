@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
         userId: user.userId,
         destination: destNorm,
         purpose,
+        userName: user.name,
       });
 
       return NextResponse.json({

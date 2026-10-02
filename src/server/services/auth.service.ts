@@ -19,6 +19,7 @@ interface FullUserRow {
   role: UserRole;
   mobile: string | null;
   account_status: AccountStatus;
+  email_verified: boolean;
   email_verified_at: Date | null;
   mobile_verified_at: Date | null;
   failed_login_attempts: number;
@@ -168,39 +169,76 @@ export class AuthService {
 
     const assignedRole: UserRole = data.role === "public" ? "public" : "owner";
 
-    // Duplicate email check
-    const existing = await query<{ id: string }>(
-      "SELECT id FROM users WHERE email = $1 LIMIT 1;",
+    // Duplicate email check & Case A / Case B handling
+    const existing = await query<{
+      id: string;
+      account_status: AccountStatus;
+      email_verified: boolean;
+      email_verified_at: Date | null;
+    }>(
+      "SELECT id, account_status, email_verified, email_verified_at FROM users WHERE email = $1 LIMIT 1;",
       [emailNorm]
     );
 
-    if (existing.rows.length > 0) {
-      throw new Error("An account with this email address already exists.");
-    }
-
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(data.password, salt);
-    const userId = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const mobileNorm = data.mobile ? data.mobile.trim() : null;
     const initialStatus: AccountStatus = "pending_verification";
 
-    await query(
-      `INSERT INTO users 
-       (id, name, email, password, role, mobile, account_status, failed_login_attempts, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 0, NOW(), NOW());`,
-      [userId, data.name.trim(), emailNorm, passwordHash, assignedRole, mobileNorm, initialStatus]
-    );
+    let userId: string;
+    let isExistingUnverified = false;
 
-    // Dispatch verification token and email
+    if (existing.rows.length > 0) {
+      const u = existing.rows[0];
+      const isVerified = u.account_status === "active" || u.email_verified === true || u.email_verified_at !== null;
+      if (isVerified) {
+        // CASE A: Account is already verified
+        throw new Error("An account with this email address already exists.");
+      }
+
+      // CASE B: Account exists but email is NOT verified
+      // Safely restart verification: update credentials, refresh unverified status
+      userId = u.id;
+      isExistingUnverified = true;
+      await query(
+        `UPDATE users 
+         SET name = $1, password = $2, role = $3, mobile = $4, account_status = $5, email_verified = false, email_verified_at = NULL, updated_at = NOW() 
+         WHERE id = $6;`,
+        [data.name.trim(), passwordHash, assignedRole, mobileNorm, initialStatus, userId]
+      );
+    } else {
+      // New account creation
+      userId = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      await query(
+        `INSERT INTO users 
+         (id, name, email, password, role, mobile, account_status, email_verified, failed_login_attempts, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, false, 0, NOW(), NOW());`,
+        [userId, data.name.trim(), emailNorm, passwordHash, assignedRole, mobileNorm, initialStatus]
+      );
+    }
+
+    // Dispatch verification token and 6-digit OTP (10 min expiry)
     let verificationSent = false;
     try {
       await OtpService.createAndSendVerificationToken({
         userId,
+        userName: data.name.trim(),
         destination: emailNorm,
+        expiryMinutes: 10,
       });
       verificationSent = true;
     } catch (err: unknown) {
-      console.warn("[AuthService] Could not dispatch registration verification email:", (err as Error).message);
+      const errMsg = err instanceof Error ? err.message : "Failed to dispatch verification email.";
+      // If this was a new account, clean it up to prevent orphaned records with failing email config
+      if (!isExistingUnverified) {
+        try {
+          await query("DELETE FROM users WHERE id = $1;", [userId]);
+        } catch (cleanupErr) {
+          console.error("[AuthService] Error rolling back failed registration:", cleanupErr);
+        }
+      }
+      console.error("[AuthService] Verification email delivery failed:", errMsg);
+      throw new Error(`Unable to deliver verification email. ${errMsg}`);
     }
 
     const sessionUser: UserSession = {
@@ -223,7 +261,7 @@ export class AuthService {
       user: sessionUser,
       token,
       verificationSent,
-      message: "Account created successfully. Check your email to verify your account.",
+      message: "Account registered successfully. Check your email for your 6-digit verification code.",
     };
   }
 
@@ -234,7 +272,7 @@ export class AuthService {
     const emailNorm = this.normalizeEmail(credentials.email);
 
     const res = await query<FullUserRow>(
-      `SELECT id, name, email, password, role, account_status, failed_login_attempts, locked_until
+      `SELECT id, name, email, password, role, account_status, email_verified, failed_login_attempts, locked_until
        FROM users WHERE email = $1 LIMIT 1;`,
       [emailNorm]
     );
@@ -290,7 +328,7 @@ export class AuthService {
       throw new Error("This account is currently suspended. Administrative review is required.");
     }
 
-    if (user.account_status === "pending_verification") {
+    if (user.account_status === "pending_verification" || user.email_verified === false) {
       throw new Error("Please verify your email address before signing in.");
     }
 
@@ -482,14 +520,14 @@ export class AuthService {
           // Record verification timestamp but strictly do not bypass suspension/disabled state
           await query(
             `UPDATE users 
-             SET email_verified_at = NOW(), updated_at = NOW() 
+             SET email_verified = TRUE, email_verified_at = NOW(), updated_at = NOW() 
              WHERE id = $1;`,
             [result.userId]
           );
         } else {
           await query(
             `UPDATE users 
-             SET account_status = 'active', email_verified_at = NOW(), updated_at = NOW() 
+             SET account_status = 'active', email_verified = TRUE, email_verified_at = NOW(), updated_at = NOW() 
              WHERE id = $1;`,
             [result.userId]
           );
@@ -567,17 +605,19 @@ export class AuthService {
     const emailNorm = this.normalizeEmail(email);
 
     const res = await query<FullUserRow>(
-      "SELECT id, email, account_status, email_verified_at FROM users WHERE email = $1 LIMIT 1;",
+      "SELECT id, name, email, account_status, email_verified, email_verified_at FROM users WHERE email = $1 LIMIT 1;",
       [emailNorm]
     );
 
     if (res.rows.length > 0) {
       const user = res.rows[0];
-      if (user.account_status === "pending_verification" || !user.email_verified_at) {
+      if (user.account_status === "pending_verification" || !user.email_verified_at || user.email_verified === false) {
         await OtpService.createAndSendVerificationToken({
           userId: user.id,
+          userName: user.name,
           destination: user.email,
           baseUrl,
+          expiryMinutes: 10,
         });
       }
     }

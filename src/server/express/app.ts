@@ -198,20 +198,17 @@ app.post(
     try {
       const { destination, purpose } = req.body;
       const destNorm = destination.trim().toLowerCase();
-      let userId = req.user?.userId;
-
-      if (!userId) {
-        const userRes = await AuthService.findById(destNorm);
-        if (userRes) {
-          userId = userRes.userId;
-        }
+      let user = req.user ? await AuthService.findById(req.user.userId) : null;
+      if (!user) {
+        user = (await AuthService.findByEmail(destNorm)) || (await AuthService.findById(destNorm));
       }
 
-      if (userId) {
+      if (user) {
         const result = await OtpService.createAndSendOtp({
-          userId,
+          userId: user.userId,
           destination: destNorm,
           purpose,
+          userName: user.name,
         });
         res.json({
           success: true,

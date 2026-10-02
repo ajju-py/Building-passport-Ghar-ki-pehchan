@@ -43,6 +43,7 @@ export class OtpService {
     userId: string;
     destination: string;
     purpose: OtpPurpose;
+    userName?: string;
   }): Promise<{ success: boolean; message: string; destination: string; expiresAt: string }> {
     const destNorm = params.destination.trim().toLowerCase();
 
@@ -96,6 +97,7 @@ export class OtpService {
       otp: plaintextOtp,
       purpose: params.purpose,
       expiryMinutes: this.OTP_EXPIRY_MINUTES,
+      userName: params.userName,
     });
 
     return {
@@ -251,6 +253,7 @@ export class OtpService {
   public static async createAndSendVerificationToken(params: {
     userId: string;
     destination: string;
+    userName?: string;
     baseUrl?: string;
     expiryMinutes?: number;
   }): Promise<{
@@ -259,9 +262,10 @@ export class OtpService {
     destination: string;
     expiresAt: string;
     token: string;
+    otp?: string;
   }> {
     const destNorm = params.destination.trim().toLowerCase();
-    const expiryMinutes = params.expiryMinutes || 60;
+    const expiryMinutes = params.expiryMinutes || this.OTP_EXPIRY_MINUTES;
 
     // 1. Enforce resend cooldown (rate limit)
     const recentOtpRes = await query<{ created_at: Date }>(
@@ -314,6 +318,7 @@ export class OtpService {
     // 5. Dispatch via Email Service (Resend)
     await EmailService.sendVerificationEmail({
       to: destNorm,
+      userName: params.userName,
       token: rawToken,
       otp: plaintextOtp,
       expiryMinutes,
@@ -326,6 +331,7 @@ export class OtpService {
       destination: this.maskDestination(destNorm),
       expiresAt: expiresAt.toISOString(),
       token: rawToken,
+      otp: plaintextOtp,
     };
   }
 

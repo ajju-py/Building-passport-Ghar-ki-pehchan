@@ -11,11 +11,12 @@ export interface EmailVerificationTemplateOptions {
   otp?: string;
   expiryMinutes?: number;
   baseUrl?: string;
+  userName?: string;
 }
 
 export class EmailTemplates {
   /**
-   * Generates email verification template with branding, verification link, button, fallback URL, expiry, and security notice.
+   * Generates email verification template with branding, recipient name, 6-digit OTP, verification link, button, expiry, and security notice.
    */
   public static getEmailVerificationTemplate(
     tokenOrOptions: string | EmailVerificationTemplateOptions,
@@ -25,6 +26,7 @@ export class EmailTemplates {
     let otp: string | undefined;
     let expiryMinutes = expiryMinutesArg;
     let candidateBaseUrl: string | undefined;
+    let userName: string | undefined;
 
     if (typeof tokenOrOptions === "string") {
       token = tokenOrOptions;
@@ -34,28 +36,33 @@ export class EmailTemplates {
       otp = tokenOrOptions.otp;
       expiryMinutes = tokenOrOptions.expiryMinutes ?? 10;
       candidateBaseUrl = tokenOrOptions.baseUrl;
+      userName = tokenOrOptions.userName;
     }
 
     const baseUrl = resolveVerificationBaseUrl(candidateBaseUrl);
     const verificationUrl = `${baseUrl}/verify-email?token=${encodeURIComponent(token)}`;
     const subject = "Verify your Building Passport account";
 
+    const greetingText = userName ? `Hello ${userName},\n\n` : "";
+    const greetingHtml = userName ? `<p class="intro">Hello <strong>${userName}</strong>,</p>` : "";
+
     const text = `
 Building Passport — Ghar Ki Pehchan
-Civil Infrastructure & Asset Registry
+Civil Infrastructure & Asset Lifecycle Registry
 
 Verify Your Account
 
-Thank you for registering with the Building Passport civil registry platform.
-Please verify your email address to complete your registration and activate your account.
+${greetingText}Thank you for registering with the Building Passport civil registry platform.
+Please verify your email address to complete registration and activate your account.
 
-Verify Account:
+${otp ? `6-DIGIT VERIFICATION CODE:\n${otp}\n\n` : ""}Verify via Direct Link:
 ${verificationUrl}
 
-${otp ? `Verification Code: ${otp}\n` : ""}This verification link will expire in ${expiryMinutes} minutes.
+This verification code and link will expire in ${expiryMinutes} minutes.
 
-Security Notice:
-If you did not create an account on Building Passport, please disregard this email. Your email will not be activated without using this verification link.
+SECURITY ADVISORY:
+- Do not share this code or link with anyone. Municipal and platform administrators will never ask for your verification code.
+- If you did not create an account on Building Passport, no further action is required and you may safely disregard this email.
 
 Need help? Contact the Building Passport Administrative Office.
     `.trim();
@@ -75,18 +82,19 @@ Need help? Contact the Building Passport Administrative Office.
     .header p { margin: 6px 0 0 0; font-size: 13px; color: #94a3b8; font-family: 'SF Mono', Consolas, monospace; text-transform: uppercase; letter-spacing: 0.05em; }
     .content { padding: 32px; }
     .content h2 { margin-top: 0; font-size: 18px; font-weight: 700; color: #0f172a; }
-    .intro { font-size: 14px; color: #334155; margin-bottom: 24px; }
-    .btn-container { text-align: center; margin: 32px 0; }
+    .intro { font-size: 14px; color: #334155; margin-bottom: 20px; }
+    .otp-card { background: #f0fdf4; border: 2px solid #86efac; border-radius: 10px; text-align: center; padding: 20px; margin: 24px 0; }
+    .otp-sub { font-size: 12px; font-weight: 600; color: #166534; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+    .otp-code { font-family: 'SF Mono', Consolas, Monaco, monospace; font-size: 34px; font-weight: 800; letter-spacing: 8px; color: #15803d; }
+    .btn-container { text-align: center; margin: 28px 0; }
     .btn { display: inline-block; background-color: #0f172a; color: #ffffff !important; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-size: 14px; font-weight: 600; letter-spacing: 0.02em; text-align: center; }
     .btn:hover { background-color: #1e293b; }
-    .otp-card { background: #f1f5f9; border: 1px dashed #cbd5e1; border-radius: 8px; text-align: center; padding: 16px; margin: 24px 0; }
-    .otp-code { font-family: 'SF Mono', Consolas, Monaco, monospace; font-size: 28px; font-weight: 700; letter-spacing: 6px; color: #0284c7; }
-    .otp-sub { font-size: 12px; color: #64748b; margin-top: 4px; }
-    .expiry { font-size: 13px; color: #64748b; text-align: center; margin-top: 12px; }
+    .expiry { font-size: 13px; color: #64748b; text-align: center; margin-top: 16px; }
     .fallback-section { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 24px 0; }
     .fallback-label { font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 8px; }
     .fallback-url { font-family: 'SF Mono', Consolas, Monaco, monospace; font-size: 11px; word-break: break-all; color: #0284c7; }
     .notice { font-size: 12px; color: #64748b; line-height: 1.6; border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 28px; }
+    .notice strong { color: #334155; }
     .footer { background: #f8fafc; padding: 18px 32px; font-size: 12px; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; }
   </style>
 </head>
@@ -98,9 +106,21 @@ Need help? Contact the Building Passport Administrative Office.
     </div>
     <div class="content">
       <h2>Verify your Building Passport account</h2>
+      ${greetingHtml}
       <p class="intro">
-        Thank you for registering with the Building Passport civil registry platform. Please confirm your email address using the button below to complete registration and activate your account.
+        Thank you for registering with the Building Passport civil registry platform. Enter the 6-digit verification code below in your registration screen or click the verification button to activate your account.
       </p>
+
+      ${
+        otp
+          ? `
+      <div class="otp-card">
+        <div class="otp-sub">Your 6-Digit Verification Code</div>
+        <div class="otp-code">${otp}</div>
+      </div>
+      `
+          : ""
+      }
 
       <div class="btn-container">
         <a href="${verificationUrl}" class="btn" target="_blank" rel="noopener noreferrer">
@@ -108,19 +128,8 @@ Need help? Contact the Building Passport Administrative Office.
         </a>
       </div>
 
-      ${
-        otp
-          ? `
-      <div class="otp-card">
-        <div class="otp-sub">Manual Verification Code</div>
-        <div class="otp-code">${otp}</div>
-      </div>
-      `
-          : ""
-      }
-
       <div class="expiry">
-        This verification link will expire in <strong>${expiryMinutes} minutes</strong>.
+        This verification code and link will expire in <strong>${expiryMinutes} minutes</strong>.
       </div>
 
       <div class="fallback-section">
@@ -129,7 +138,11 @@ Need help? Contact the Building Passport Administrative Office.
       </div>
 
       <div class="notice">
-        <strong>Security Notice:</strong> If you did not create an account on Building Passport, no further action is required and you may safely disregard this email. Your email address will not be activated without this verification link.
+        <strong>Security Advisory:</strong>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px;">
+          <li>Do not share this code or link with anyone. Municipal and platform administrators will never ask for your code.</li>
+          <li>If you did not create an account on Building Passport, no further action is required and you may safely disregard this email.</li>
+        </ul>
       </div>
     </div>
     <div class="footer">
