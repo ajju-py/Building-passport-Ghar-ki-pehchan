@@ -406,7 +406,9 @@ app.post(
       const result = await AuthService.forgotPassword(req.body.email);
       res.json({
         success: true,
-        message: result.message,
+        data: {
+          message: result.message,
+        },
       });
     } catch (err: unknown) {
       res.status(400).json({
@@ -426,7 +428,9 @@ app.post(
       const result = await AuthService.resetPassword(req.body);
       res.json({
         success: true,
-        message: result.message,
+        data: {
+          message: result.message,
+        },
       });
     } catch (err: unknown) {
       res.status(400).json({

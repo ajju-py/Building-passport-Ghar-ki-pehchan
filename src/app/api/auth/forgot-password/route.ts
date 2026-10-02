@@ -26,7 +26,9 @@ export async function POST(req: NextRequest) {
     const result = await AuthService.forgotPassword(validated.data.email);
     return NextResponse.json({
       success: true,
-      message: result.message,
+      data: {
+        message: result.message,
+      },
     });
   } catch (err: unknown) {
     return NextResponse.json(
