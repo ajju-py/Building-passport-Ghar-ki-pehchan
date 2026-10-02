@@ -24,10 +24,22 @@ interface HealthInfo {
   status: string;
   environment: string;
   database?: {
+    provider?: string;
     connected: boolean;
     mode: string;
     notice: string;
+    postgres?: {
+      connected?: boolean;
+      endpoint?: string;
+      database?: string;
+      latencyMs?: number;
+      version?: string;
+    };
+    mongodb?: {
+      connected?: boolean;
+    };
   };
+  version?: string;
 }
 
 export default function DashboardPage() {
@@ -107,6 +119,28 @@ export default function DashboardPage() {
     };
   }, []);
 
+  // Database status determination
+  const isPostgresConnected = Boolean(
+    healthInfo?.database?.connected &&
+      (healthInfo.database.provider === "postgresql" || !healthInfo.database.provider) &&
+      (healthInfo.database.mode === "live-postgresql" || !healthInfo.database.mode)
+  );
+
+  const rawPgVersion = healthInfo?.database?.postgres?.version?.trim();
+  const dynamicEngineLabel = rawPgVersion
+    ? rawPgVersion.toLowerCase().startsWith("postgresql")
+      ? rawPgVersion
+      : `PostgreSQL ${rawPgVersion}`
+    : "PostgreSQL";
+
+  const dbStatusTitle = isPostgresConnected
+    ? `${dynamicEngineLabel} (Active)`
+    : "PostgreSQL (Disconnected)";
+
+  const dbStatusNotice = isPostgresConnected
+    ? healthInfo?.database?.notice || "Connected to PostgreSQL primary database."
+    : healthInfo?.database?.notice || "PostgreSQL primary database is currently disconnected.";
+
   return (
     <div className="min-h-screen bg-[#faf9f6] flex flex-col justify-between selection:bg-slate-900 selection:text-white">
       <Navbar />
@@ -160,7 +194,7 @@ export default function DashboardPage() {
           <div className="flex items-center space-x-3">
             <div
               className={`w-3 h-3 rounded-full shrink-0 ${
-                healthInfo?.database?.connected
+                isPostgresConnected
                   ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
                   : "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"
               }`}
@@ -169,12 +203,12 @@ export default function DashboardPage() {
               <p className="font-semibold text-slate-900 flex items-center">
                 <Database className="w-3.5 h-3.5 mr-1.5 text-slate-600" />
                 Database Engine:{" "}
-                <span className="ml-1 font-mono uppercase text-[11px] font-bold">
-                  {healthInfo?.database?.mode === "live-mongodb" ? "MongoDB (Active)" : "Dev Repository (Memory Fallback Active)"}
+                <span className="ml-1 font-mono text-[11px] font-bold">
+                  {dbStatusTitle}
                 </span>
               </p>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                {healthInfo?.database?.notice || "Mongoose schemas & models active with live persistence."}
+                {dbStatusNotice}
               </p>
             </div>
           </div>

@@ -26,6 +26,16 @@ export interface SystemHealthData {
     connected: boolean;
     mode: string;
     notice: string;
+    postgres?: {
+      connected?: boolean;
+      endpoint?: string;
+      database?: string;
+      latencyMs?: number;
+      version?: string;
+    };
+    mongodb?: {
+      connected?: boolean;
+    };
   };
   version: string;
 }
@@ -68,7 +78,29 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 export const api = {
   // System Health
   async getHealth(): Promise<SystemHealthData> {
-    return request<SystemHealthData>("/api/health");
+    const url = `${getBaseUrl()}/api/health`;
+    const response = await fetch(url, {
+      headers: getAuthHeader(),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: Request failed`);
+    }
+
+    const payload = await response.json().catch(() => null);
+    if (!payload) {
+      throw new Error("Invalid JSON response from health endpoint");
+    }
+
+    if ("database" in payload) {
+      return payload as SystemHealthData;
+    }
+
+    if (payload.success && payload.data) {
+      return payload.data as SystemHealthData;
+    }
+
+    return payload as SystemHealthData;
   },
 
   // Auth
