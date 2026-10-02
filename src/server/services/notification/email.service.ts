@@ -10,6 +10,23 @@ export class EmailService {
   private static providerInstance: IEmailProvider | null = null;
 
   /**
+   * Returns whether SMTP (e.g. Gmail) is configured in environment.
+   */
+  public static isSmtpConfigured(): boolean {
+    const host = process.env.SMTP_HOST;
+    const user = process.env.SMTP_USER;
+    const password = process.env.SMTP_PASSWORD;
+    return !!(
+      host &&
+      host.trim().length > 0 &&
+      user &&
+      user.trim().length > 0 &&
+      password &&
+      password.trim().length > 0
+    );
+  }
+
+  /**
    * Returns whether Resend API key is configured.
    */
   public static isResendConfigured(): boolean {
@@ -18,13 +35,17 @@ export class EmailService {
   }
 
   /**
-   * Returns whether an external email delivery provider (e.g. Resend or SMTP) is configured in environment.
+   * Returns whether an external email delivery provider (e.g. Gmail/SMTP or Resend) is configured in environment.
    */
   public static isExternalProviderConfigured(): boolean {
-    if (this.isResendConfigured()) return true;
-    const provider = process.env.EMAIL_PROVIDER?.toLowerCase();
-    const hasSmtpHost = !!process.env.SMTP_HOST && process.env.SMTP_HOST.trim().length > 0;
-    return provider === "smtp" || hasSmtpHost;
+    const provider = process.env.EMAIL_PROVIDER?.toLowerCase().trim();
+    if (provider === "gmail" || provider === "smtp") {
+      return this.isSmtpConfigured();
+    }
+    if (provider === "resend") {
+      return this.isResendConfigured();
+    }
+    return this.isSmtpConfigured() || this.isResendConfigured();
   }
 
   /**
@@ -35,28 +56,45 @@ export class EmailService {
       return this.providerInstance;
     }
 
-    // 1. Resend is the primary real transactional email provider
-    if (this.isResendConfigured()) {
+    const providerType = (process.env.EMAIL_PROVIDER || "").toLowerCase().trim();
+    const isProduction = process.env.NODE_ENV === "production";
+
+    // 1. Gmail / SMTP provider (Active production provider when configured or specified)
+    if (
+      providerType === "gmail" ||
+      providerType === "smtp" ||
+      (this.isSmtpConfigured() && providerType !== "resend" && providerType !== "development")
+    ) {
+      this.providerInstance = new SmtpEmailProvider();
+      return this.providerInstance;
+    }
+
+    // 2. Resend provider (Retained as optional provider/fallback)
+    if (providerType === "resend" || (this.isResendConfigured() && !providerType)) {
       this.providerInstance = new ResendEmailProvider();
       return this.providerInstance;
     }
 
-    const providerType = process.env.EMAIL_PROVIDER?.toLowerCase();
-    const isProduction = process.env.NODE_ENV === "production";
-
-    // 2. SMTP provider fallback if explicitly configured
-    if (providerType === "smtp" || (!!process.env.SMTP_HOST && process.env.SMTP_HOST.trim().length > 0)) {
-      this.providerInstance = new SmtpEmailProvider();
-    } else {
-      if (isProduction && !env.SHOWCASE_MODE) {
-        console.warn(
-          "[EmailService:WARNING] In production mode without RESEND_API_KEY or EMAIL_PROVIDER configured. Outbound transactional emails cannot be delivered to mailboxes."
-        );
-      }
-      this.providerInstance = new DevNotificationProvider();
+    // 3. Fallback: Dev notification provider (mock in-memory for testing / development)
+    if (isProduction && !env.SHOWCASE_MODE && !this.isSmtpConfigured() && !this.isResendConfigured()) {
+      console.warn(
+        "[EmailService:WARNING] In production mode without SMTP or RESEND configured. Outbound transactional emails cannot be delivered to mailboxes."
+      );
     }
-
+    this.providerInstance = new DevNotificationProvider();
     return this.providerInstance;
+  }
+
+  /**
+   * Explicitly verifies the active SMTP connection.
+   */
+  public static async verifyConnection(): Promise<{ success: boolean; provider: string; error?: string }> {
+    const provider = this.getProvider();
+    if (provider.verifyConnection && typeof provider.verifyConnection === "function") {
+      const res = await provider.verifyConnection();
+      return { success: res.success, provider: provider.name, error: res.error };
+    }
+    return { success: true, provider: provider.name };
   }
 
   /**

@@ -18,5 +18,6 @@ export interface EmailSendResult {
 export interface IEmailProvider {
   readonly name: string;
   sendEmail(payload: EmailPayload): Promise<EmailSendResult>;
+  verifyConnection?(): Promise<{ success: boolean; error?: string }>;
 }
 

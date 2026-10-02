@@ -197,5 +197,13 @@ export const env = {
   RESEND_API_KEY: process.env.RESEND_API_KEY?.trim(),
   RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL?.trim() || "onboarding@resend.dev",
   RESEND_FROM_NAME: process.env.RESEND_FROM_NAME?.trim() || "Building Passport",
+  EMAIL_PROVIDER: process.env.EMAIL_PROVIDER?.trim() || "development",
+  SMTP_HOST: process.env.SMTP_HOST?.trim() || "smtp.gmail.com",
+  SMTP_PORT: parseInt(process.env.SMTP_PORT || "587", 10),
+  SMTP_SECURE: process.env.SMTP_SECURE === "true",
+  SMTP_USER: process.env.SMTP_USER?.trim() || "buildingpassport.india@gmail.com",
+  SMTP_PASSWORD: process.env.SMTP_PASSWORD?.trim(),
+  EMAIL_FROM_NAME: process.env.EMAIL_FROM_NAME?.trim() || "Building Passport",
+  EMAIL_FROM_EMAIL: process.env.EMAIL_FROM_EMAIL?.trim() || "buildingpassport.india@gmail.com",
 };
 
