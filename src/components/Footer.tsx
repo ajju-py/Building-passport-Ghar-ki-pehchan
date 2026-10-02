@@ -69,7 +69,7 @@ export default function Footer() {
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">STAGE 2 DATABASE:</span>
-                <span className="text-slate-200">MongoDB Civil Schemas</span>
+                <span className="text-slate-200">PostgreSQL 17 Primary Engine</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">STANDARDS:</span>

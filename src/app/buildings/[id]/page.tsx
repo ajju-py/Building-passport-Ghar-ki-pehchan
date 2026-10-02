@@ -38,6 +38,7 @@ import {
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import BuildingHealthSection from "@/components/health/BuildingHealthSection";
+import BuildingComplianceSection from "@/components/compliance/BuildingComplianceSection";
 
 export default function BuildingDetailPage({
   params,
@@ -52,7 +53,7 @@ export default function BuildingDetailPage({
   const [maintenance, setMaintenance] = useState<MaintenanceRecord[]>([]);
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
   const [activeTab, setActiveTab] = useState<
-    "overview" | "health" | "inspections" | "defects" | "maintenance" | "documents" | "photos" | "qr" | "report"
+    "overview" | "health" | "compliance" | "inspections" | "defects" | "maintenance" | "documents" | "photos" | "qr" | "report"
   >("overview");
 
   const [loading, setLoading] = useState(true);
@@ -313,6 +314,14 @@ export default function BuildingDetailPage({
                     <Activity className="w-3 h-3 text-indigo-600" />
                     <span>Health Assessment</span>
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("compliance")}
+                    className="text-[10px] font-mono uppercase bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded font-medium flex items-center space-x-1 transition-colors cursor-pointer"
+                  >
+                    <FileCheck2 className="w-3 h-3 text-emerald-600" />
+                    <span>Construction Rules</span>
+                  </button>
                 </div>
 
                 <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1.5">
@@ -362,6 +371,7 @@ export default function BuildingDetailPage({
             {[
               { id: "overview", label: "Civil Specs & Overview", icon: Layers },
               { id: "health", label: "Health Assessment", icon: Activity },
+              { id: "compliance", label: "Construction Rules", icon: FileCheck2 },
               { id: "inspections", label: `Inspections (${inspections.length})`, icon: FileCheck2 },
               { id: "defects", label: `Defects (${openDefectsCount} Open)`, icon: AlertTriangle },
               { id: "maintenance", label: "Maintenance Ledger", icon: Wrench },
@@ -976,6 +986,11 @@ export default function BuildingDetailPage({
           {/* TAB: CIVIL HEALTH ASSESSMENT */}
           {activeTab === "health" && (
             <BuildingHealthSection building={building} />
+          )}
+
+          {/* TAB: CONSTRUCTION RULES & COMPLIANCE */}
+          {activeTab === "compliance" && (
+            <BuildingComplianceSection building={building} />
           )}
         </div>
       </main>

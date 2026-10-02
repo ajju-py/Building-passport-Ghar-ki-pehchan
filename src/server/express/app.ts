@@ -16,6 +16,7 @@ import { requireRole } from "../middlewares/role.middleware";
 import { UserService } from "../services/user.service";
 import { OtpService } from "../services/otp.service";
 import { AssessmentService } from "../services/health/assessment.service";
+import { ComplianceService } from "../services/compliance.service";
 import {
   registerSchema,
   loginSchema,
@@ -1274,6 +1275,42 @@ app.get(
       res.status(500).json({
         success: false,
         error: (err as Error).message || "Failed to retrieve latest health assessment.",
+      });
+    }
+  }
+);
+
+// -----------------------------------------------------------
+// PHASE 3 CONSTRUCTION RULES & COMPLIANCE ENGINE ROUTES
+// -----------------------------------------------------------
+app.get(
+  "/api/buildings/:id/construction-rules",
+  requireAuth,
+  requireRole("admin", "engineer", "owner"),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const access = await ComplianceService.checkBuildingComplianceAccess(
+        String(req.params.id),
+        req.user!
+      );
+      if (!access.allowed) {
+        res.status(access.status).json({
+          success: false,
+          error: access.message,
+        });
+        return;
+      }
+
+      const evaluation = await ComplianceService.evaluateBuildingCompliance(access.buildingId!);
+
+      res.json({
+        success: true,
+        data: evaluation,
+      });
+    } catch (err: unknown) {
+      res.status(500).json({
+        success: false,
+        error: (err as Error).message || "Failed to evaluate construction compliance rules.",
       });
     }
   }

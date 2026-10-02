@@ -372,3 +372,20 @@ export interface HealthAssessmentCalculation {
   summaryExplanation: string;
 }
 
+// ==============================================================================
+// PHASE 3: CONSTRUCTION RULES & COMPLIANCE ENGINE TYPES
+// ==============================================================================
+
+export type {
+  RuleCategory,
+  RuleStatus,
+  RuleSeverity,
+  RuleResult,
+  BuildingRuleInput,
+  ConstructionRule,
+  CategorySummary,
+  RequiredAction,
+  ComplianceSummary,
+  BuildingComplianceEvaluation,
+} from "./construction-rules/types";
+

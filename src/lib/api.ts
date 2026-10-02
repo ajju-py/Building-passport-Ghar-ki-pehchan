@@ -15,6 +15,7 @@ import {
   UserProfile,
   AccountStatus,
   OtpPurpose,
+  BuildingComplianceEvaluation,
 } from "./types";
 
 export interface SystemHealthData {
@@ -277,6 +278,12 @@ export const api = {
 
     async getReport(id: string) {
       return request<BuildingReport>(`/api/buildings/${encodeURIComponent(id)}/report`);
+    },
+
+    async getConstructionRules(id: string) {
+      return request<BuildingComplianceEvaluation>(
+        `/api/buildings/${encodeURIComponent(id)}/construction-rules`
+      );
     },
   },
 

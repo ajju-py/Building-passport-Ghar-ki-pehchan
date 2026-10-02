@@ -45,7 +45,7 @@ The project is structured into three major development stages:
     - `engineer` (Certified Structural Inspector): inspection & defect certification
     - `owner` (Property Owner / Facility Manager): building registration & maintenance logging
     - `public` (Public Citizen / Buyer / Tenant): read-only access to sanitized public passports
-  - **Dual-Mode Persistence Architecture**: Mongoose database layer connecting to live MongoDB with automated high-fidelity in-memory civil repository fallback when a local MongoDB daemon is not running.
+  - **PostgreSQL 17 Primary Database**: Full relational persistence via `pg` connection pool with strict schemas across 8 civil tables (`users`, `buildings`, `structural_profiles`, `inspections`, `defects`, `maintenance_records`, `documents`, `photographs`, plus health assessment records).
   - **Dynamic QR Code Generation**: Scannable high-resolution QR passport tokens with official civil branding, resolving to `/public/building/[passportId]`.
   - **Strict Public vs. Private Separation**: Public QR verification masks owner contact numbers, personal identification, and proprietary engineering blueprints.
   - **Multi-Tab Building Profile**:
@@ -59,13 +59,21 @@ The project is structured into three major development stages:
     - Printable official civil dossier report
   - **Dual API Support**: Runs both as integrated Next.js App Router API (`http://localhost:3000/api`) and standalone Express.js backend service (`http://localhost:5000/api`).
 
-### Stage 3 — Building AI Health Prediction System `[PLANNED]`
-- **Objective**: Intelligent decision-support engine for structural longevity and proactive risk detection.
-- **Planned Functionality**:
-  - Multi-parameter neural analysis (photographs, material degradation curves, defect logs, concrete age)
-  - Automated **Building Health Score (0-100)** calculation
-  - Specific risk sub-scores: Structural Condition, Maintenance Freshness, Water Damage Risk, Corrosion Risk, Repair Priority
-  - Automated inspection recommendations for facility managers
+### Stage 3 — Construction Rules & Compliance Engine `[COMPLETED & VERIFIED]`
+- **Objective**: Deterministic civil engineering rules engine evaluating building lifecycle data into actionable compliance statuses (`PASS`, `WARNING`, `FAIL`, `NOT_ASSESSED`).
+- **Engine Architecture (`src/lib/construction-rules/`)**:
+  - **Rule Registry & Versioning**: Version `construction-rules-v1.0` with statutory decision-support notice.
+  - **Zero Side-Effects**: Pure deterministic evaluation layer without machine learning, external dependencies, or database mutations.
+  - **Missing Data Strictness**: Missing attributes (e.g. absent concrete grade or unverified fire NOC) strictly yield `NOT_ASSESSED` or `WARNING`—never a false `PASS`.
+  - **15 Civil Engineering Rules across 6 Categories**:
+    - *Structural*: Frame system validation (`STR-001`), foundation integrity (`STR-002`), concrete grade testing (`STR-003`), seismic zone compatibility (`STR-004`), critical defect structural impact (`STR-005`).
+    - *Safety*: Structural fire rating (`SAF-001`), municipal fire safety NOC / permit validity (`SAF-002`).
+    - *Documentation*: Architectural blueprint availability (`DOC-001`), structural design dossier (`DOC-002`), geotechnical soil report (`DOC-003`).
+    - *Maintenance*: Structural audit recurrence cadence (`MNT-001`), maintenance continuity ledger (`MNT-002`).
+    - *Lifecycle*: Structural age vs. condition degradation (`LIF-001`), building envelope durability (`LIF-002`).
+    - *Occupancy*: Floor-to-occupancy spatial capacity consistency (`OCC-001`).
+  - **Actionable Remediation**: Specific civil engineering corrective actions and evidence traces generated for every failure or warning.
+  - **RBAC & Public Privacy**: Protected endpoint `/api/buildings/[id]/construction-rules` accessible strictly to `admin`, `engineer`, and `owner`. Access denied to `public` role to protect sensitive structural vulnerability data.
 
 ---
 
@@ -108,8 +116,9 @@ Building passport/
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
 - **Styling**: [Tailwind CSS v3](https://tailwindcss.com/) + PostCSS + Autoprefixer
 - **Icons**: [Lucide React](https://lucide.dev/)
-- **Future Backend**: Node.js + Express.js
-- **Future Database**: MongoDB
+- **Backend**: Node.js + Express.js (`src/server/express/`) & Next.js App Router API Routes (`src/app/api/`)
+- **Primary Database**: PostgreSQL 17 (`pg` connection pool with relational persistence across 8 civil tables)
+- **Compliance Engine**: Pure deterministic civil rules evaluator (`construction-rules-v1.0`)
 
 ---
 
@@ -118,6 +127,7 @@ Building passport/
 ### Prerequisites
 - Node.js `>= 20.9.0`
 - npm `>= 10.0.0`
+- PostgreSQL `>= 17.0`
 
 ### Installation & Local Development
 
@@ -146,6 +156,9 @@ Building passport/
 - `npm run build`: Compiles the optimized Next.js production build and typechecks all routes.
 - `npm start`: Starts the Next.js production server.
 - `npm run lint`: Runs ESLint checks across the codebase.
+- `npx tsx tests/phase3_construction_rules.test.ts`: Runs the Phase 3 Construction Rules & Compliance Engine test suite (56 tests).
+- `npx tsx tests/regression.test.ts`: Runs database integrity & regression test suite (30 tests).
+- `npx tsx tests/phase23_auth.test.ts`: Runs authentication and RBAC verification test suite (46 tests).
 
 ---
 
