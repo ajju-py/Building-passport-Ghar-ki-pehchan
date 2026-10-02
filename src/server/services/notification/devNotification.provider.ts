@@ -10,6 +10,7 @@ export interface DispatchedEmailRecord {
   purpose: OtpPurpose;
   timestamp: Date;
   otp?: string;
+  token?: string;
 }
 
 export class DevNotificationProvider implements IEmailProvider {
@@ -24,12 +25,17 @@ export class DevNotificationProvider implements IEmailProvider {
     const isShowcase = env.SHOWCASE_MODE;
     const canExtractOtp = !isProduction || isShowcase;
 
-    // Extract OTP for testing sink in development or showcase mode
+    // Extract OTP and Token for testing sink in development or showcase mode
     let extractedOtp: string | undefined;
+    let extractedToken: string | undefined;
     if (canExtractOtp) {
       const match = payload.text.match(/(?:Verification Code|Reset Code):\s*([0-9]{6})/i);
       if (match) {
         extractedOtp = match[1];
+      }
+      const matchToken = payload.text.match(/token=([a-f0-9]{20,})/i);
+      if (matchToken) {
+        extractedToken = matchToken[1];
       }
     }
 
@@ -41,6 +47,7 @@ export class DevNotificationProvider implements IEmailProvider {
       purpose: payload.purpose,
       timestamp: new Date(),
       otp: canExtractOtp ? extractedOtp : undefined,
+      token: canExtractOtp ? extractedToken : undefined,
     };
 
     DevNotificationProvider.emailQueue.push(record);
@@ -77,6 +84,25 @@ export class DevNotificationProvider implements IEmailProvider {
         if (!purpose || item.purpose === purpose) {
           return item.otp;
         }
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Retrieves the most recent verification token dispatched to a destination for testing purposes.
+   * Returns undefined in production mode to prevent secret leakage, unless in SHOWCASE_MODE.
+   */
+  public static getLatestDevToken(destination: string): string | undefined {
+    if (process.env.NODE_ENV === "production" && !env.SHOWCASE_MODE) {
+      return undefined;
+    }
+
+    const destNorm = destination.toLowerCase().trim();
+    for (let i = this.emailQueue.length - 1; i >= 0; i--) {
+      const item = this.emailQueue[i];
+      if (item.to === destNorm && item.token) {
+        return item.token;
       }
     }
     return undefined;

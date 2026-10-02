@@ -270,14 +270,32 @@ app.post(
   createAuthRateLimiter("otp"),
   async (req: Request, res: Response) => {
     try {
-      const { email, otp } = req.body;
-      if (!email || !otp) {
-        res.status(400).json({
-          success: false,
-          error: "Email and OTP are required.",
+      const { token, email, otp } = req.body;
+      if (token && typeof token === "string") {
+        const result = await AuthService.verifyEmailToken(token);
+        if (!result.success) {
+          res.status(400).json({
+            success: false,
+            error: result.message,
+            reason: result.reason,
+          });
+          return;
+        }
+        res.json({
+          success: true,
+          message: result.message,
         });
         return;
       }
+
+      if (!email || !otp) {
+        res.status(400).json({
+          success: false,
+          error: "Verification token or Email and OTP are required.",
+        });
+        return;
+      }
+
       const result = await AuthService.verifyOtp({
         destinationOrUserId: email,
         otp: String(otp),
@@ -291,6 +309,72 @@ app.post(
       res.status(400).json({
         success: false,
         error: (err as Error).message || "Email verification failed.",
+      });
+    }
+  }
+);
+
+app.get(
+  "/api/auth/verify-email",
+  createAuthRateLimiter("otp"),
+  async (req: Request, res: Response) => {
+    try {
+      const token = req.query.token as string;
+      if (!token) {
+        res.status(400).json({
+          success: false,
+          error: "Verification token is required.",
+          reason: "MISSING_TOKEN",
+        });
+        return;
+      }
+
+      const result = await AuthService.verifyEmailToken(token);
+      if (!result.success) {
+        res.status(400).json({
+          success: false,
+          error: result.message,
+          reason: result.reason,
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        message: result.message,
+      });
+    } catch (err: unknown) {
+      res.status(400).json({
+        success: false,
+        error: (err as Error).message || "Email verification failed.",
+      });
+    }
+  }
+);
+
+app.post(
+  "/api/auth/resend-verification",
+  createAuthRateLimiter("otp"),
+  async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      if (!email || typeof email !== "string") {
+        res.status(400).json({
+          success: false,
+          error: "Valid email address is required.",
+        });
+        return;
+      }
+
+      const result = await AuthService.resendVerification(email);
+      res.json({
+        success: true,
+        message: result.message,
+      });
+    } catch (err: unknown) {
+      res.status(400).json({
+        success: false,
+        error: (err as Error).message || "Unable to process resend request.",
       });
     }
   }

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Building2, UserPlus, AlertCircle, ShieldCheck, CheckCircle2, RefreshCw, ArrowRight } from "lucide-react";
+import { Building2, UserPlus, AlertCircle, ShieldCheck, CheckCircle2, RefreshCw, ArrowRight, Mail } from "lucide-react";
 import { UserRole } from "@/lib/types";
 import { api } from "@/lib/api";
 import Navbar from "@/components/Navbar";
@@ -68,7 +68,7 @@ export default function RegisterPage() {
         mobile: mobile.trim() || undefined,
       });
 
-      setSuccessMsg(`A 6-digit verification code has been dispatched to ${email}.`);
+      setSuccessMsg("Check your email to verify your account.");
       setStep(2);
       setCooldown(30);
     } catch (err: unknown) {
@@ -285,15 +285,22 @@ export default function RegisterPage() {
               </form>
             )}
 
-            {/* STEP 2: Email OTP Verification */}
+            {/* STEP 2: Email Verification */}
             {step === 2 && (
               <form onSubmit={handleOtpSubmit} className="space-y-4">
                 <div className="text-center py-2">
-                  <p className="text-xs text-slate-600 mb-1">
-                    Enter the one-time code sent to:
+                  <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 text-slate-800 mb-2">
+                    <Mail className="w-5 h-5" />
+                  </div>
+                  <h3 className="text-sm font-bold text-slate-900">Check your email to verify your account</h3>
+                  <p className="text-xs text-slate-600 mt-1">
+                    We sent a verification link and security code to:
                   </p>
-                  <p className="text-sm font-semibold text-slate-900 font-mono">
+                  <p className="text-xs font-semibold text-slate-900 font-mono mt-0.5">
                     {email}
+                  </p>
+                  <p className="text-[11px] text-slate-500 mt-2">
+                    You can click the link in your email or enter the 6-digit code below:
                   </p>
                 </div>
 

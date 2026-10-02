@@ -156,6 +156,22 @@ export const api = {
       });
     },
 
+    async verifyEmailToken(token: string) {
+      return request<{ message: string }>("/api/auth/verify-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+    },
+
+    async resendVerification(payload: { email: string }) {
+      return request<{ message: string }>("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    },
+
     async forgotPassword(payload: { email: string }) {
       return request<{ message: string }>("/api/auth/forgot-password", {
         method: "POST",

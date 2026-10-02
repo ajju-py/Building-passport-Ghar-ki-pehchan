@@ -191,17 +191,16 @@ export class AuthService {
       [userId, data.name.trim(), emailNorm, passwordHash, assignedRole, mobileNorm, initialStatus]
     );
 
-    // Dispatch verification OTP to email
+    // Dispatch verification token and email
     let verificationSent = false;
     try {
-      await OtpService.createAndSendOtp({
+      await OtpService.createAndSendVerificationToken({
         userId,
         destination: emailNorm,
-        purpose: "EMAIL_VERIFICATION",
       });
       verificationSent = true;
     } catch (err: unknown) {
-      console.warn("[AuthService] Could not dispatch registration OTP:", (err as Error).message);
+      console.warn("[AuthService] Could not dispatch registration verification email:", (err as Error).message);
     }
 
     const sessionUser: UserSession = {
@@ -224,7 +223,7 @@ export class AuthService {
       user: sessionUser,
       token,
       verificationSent,
-      message: "Account created successfully. Please verify your email with the OTP code sent to you.",
+      message: "Account created successfully. Check your email to verify your account.",
     };
   }
 
@@ -289,6 +288,10 @@ export class AuthService {
 
     if (user.account_status === "suspended") {
       throw new Error("This account is currently suspended. Administrative review is required.");
+    }
+
+    if (user.account_status === "pending_verification") {
+      throw new Error("Please verify your email address before signing in.");
     }
 
     // Successful login: reset failed attempts and record last login
@@ -551,5 +554,49 @@ export class AuthService {
       role: user.role,
       accountStatus: user.account_status,
     };
+  }
+
+  /**
+   * Resends verification email to an unverified user.
+   * Enumeration-safe: always returns a generic response so attackers cannot probe for registered emails.
+   */
+  public static async resendVerification(
+    email: string,
+    baseUrl?: string
+  ): Promise<{ success: boolean; message: string }> {
+    const emailNorm = this.normalizeEmail(email);
+
+    const res = await query<FullUserRow>(
+      "SELECT id, email, account_status, email_verified_at FROM users WHERE email = $1 LIMIT 1;",
+      [emailNorm]
+    );
+
+    if (res.rows.length > 0) {
+      const user = res.rows[0];
+      if (user.account_status === "pending_verification" || !user.email_verified_at) {
+        await OtpService.createAndSendVerificationToken({
+          userId: user.id,
+          destination: user.email,
+          baseUrl,
+        });
+      }
+    }
+
+    return {
+      success: true,
+      message: "If an account matches that email address, a verification link has been dispatched.",
+    };
+  }
+
+  /**
+   * Verifies an account using a cryptographic verification link token.
+   */
+  public static async verifyEmailToken(token: string): Promise<{
+    success: boolean;
+    message: string;
+    reason?: "MISSING_TOKEN" | "INVALID_TOKEN" | "EXPIRED" | "ALREADY_USED";
+    userId?: string;
+  }> {
+    return OtpService.verifyEmailToken(token);
   }
 }

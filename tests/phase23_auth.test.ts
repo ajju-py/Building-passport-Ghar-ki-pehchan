@@ -46,6 +46,9 @@ async function runTests() {
     // -------------------------------------------------------------
     console.log("\n--- Part 1: Email Verification Suite ---");
 
+    // Explicitly configure DevNotificationProvider for in-memory OTP inspection tests
+    EmailService.setProvider(new DevNotificationProvider());
+
     // 1. Registration creates pending account
     const regResult = await AuthService.register({
       name: "Er. Verification Test Auditor",
