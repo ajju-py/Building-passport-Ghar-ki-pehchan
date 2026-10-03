@@ -134,12 +134,16 @@ export class BuildingService {
           builder_company_name, builder_name, builder_contact, builder_details,
           owner_name, owner_contact, owner_email, owner_additional_info,
           qr_code_data_url, condition, maintenance_status,
+          plot_number, survey_number, built_up_area, occupancy_status, construction_status,
+          registration_date, structural_engineer_name, structural_engineer_license,
+          architect_name, architect_license, gis_polygon,
           created_by, created_at, updated_at
         ) VALUES (
           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
           $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
           $21, $22, $23, $24, $25, $26, $27, $28, $29, $30,
-          $31, $32, $33, NOW(), NOW()
+          $31, $32, $33, $34, $35, $36, $37, $38, $39, $40,
+          $41, $42, $43, $44, NOW(), NOW()
         )
         RETURNING *;
       `;
@@ -177,6 +181,17 @@ export class BuildingService {
         qrCodeDataUrl,
         data.condition || "Good",
         data.maintenanceStatus || "Up to Date",
+        data.plotNumber || null,
+        data.surveyNumber || null,
+        data.builtUpArea || null,
+        data.occupancyStatus || "Occupied",
+        data.constructionStatus || "Completed",
+        data.registrationDate || null,
+        data.structuralEngineerName || null,
+        data.structuralEngineerLicense || null,
+        data.architectName || null,
+        data.architectLicense || null,
+        data.gisPolygon ? JSON.stringify(data.gisPolygon) : null,
         userId || null,
       ];
 
@@ -524,6 +539,52 @@ export class BuildingService {
         }
       }
 
+      // Extended central record fields
+      if (updates.plotNumber !== undefined) {
+        setClauses.push(`plot_number = $${idx++}`);
+        values.push(updates.plotNumber || null);
+      }
+      if (updates.surveyNumber !== undefined) {
+        setClauses.push(`survey_number = $${idx++}`);
+        values.push(updates.surveyNumber || null);
+      }
+      if (updates.builtUpArea !== undefined) {
+        setClauses.push(`built_up_area = $${idx++}`);
+        values.push(updates.builtUpArea || null);
+      }
+      if (updates.occupancyStatus !== undefined) {
+        setClauses.push(`occupancy_status = $${idx++}`);
+        values.push(updates.occupancyStatus || "Occupied");
+      }
+      if (updates.constructionStatus !== undefined) {
+        setClauses.push(`construction_status = $${idx++}`);
+        values.push(updates.constructionStatus || "Completed");
+      }
+      if (updates.registrationDate !== undefined) {
+        setClauses.push(`registration_date = $${idx++}`);
+        values.push(updates.registrationDate || null);
+      }
+      if (updates.structuralEngineerName !== undefined) {
+        setClauses.push(`structural_engineer_name = $${idx++}`);
+        values.push(updates.structuralEngineerName || null);
+      }
+      if (updates.structuralEngineerLicense !== undefined) {
+        setClauses.push(`structural_engineer_license = $${idx++}`);
+        values.push(updates.structuralEngineerLicense || null);
+      }
+      if (updates.architectName !== undefined) {
+        setClauses.push(`architect_name = $${idx++}`);
+        values.push(updates.architectName || null);
+      }
+      if (updates.architectLicense !== undefined) {
+        setClauses.push(`architect_license = $${idx++}`);
+        values.push(updates.architectLicense || null);
+      }
+      if (updates.gisPolygon !== undefined) {
+        setClauses.push(`gis_polygon = $${idx++}`);
+        values.push(updates.gisPolygon ? JSON.stringify(updates.gisPolygon) : null);
+      }
+
       setClauses.push(`updated_at = NOW()`);
 
       if (setClauses.length > 1) {
@@ -638,6 +699,17 @@ export class BuildingService {
       photographs: building.photographs.filter((p) => !p.isPrivate),
       condition: building.condition,
       maintenanceStatus: building.maintenanceStatus,
+      plotNumber: building.plotNumber,
+      surveyNumber: building.surveyNumber,
+      builtUpArea: building.builtUpArea,
+      occupancyStatus: building.occupancyStatus,
+      constructionStatus: building.constructionStatus,
+      registrationDate: building.registrationDate,
+      structuralEngineerName: building.structuralEngineerName,
+      structuralEngineerLicense: building.structuralEngineerLicense,
+      architectName: building.architectName,
+      architectLicense: building.architectLicense,
+      gisPolygon: building.gisPolygon,
       createdAt: building.createdAt,
       updatedAt: building.updatedAt,
     };

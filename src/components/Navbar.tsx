@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, ArrowRight, Building2, User, LogOut, ShieldCheck } from "lucide-react";
+import { Menu, X, ArrowRight, User, LogOut, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { BuildingPassportLogo } from "@/components/brand/BuildingPassportLogo";
 
 interface NavLink {
   name: string;
@@ -78,17 +79,7 @@ export default function Navbar({ publicOnly = false }: NavbarProps) {
             className="flex items-center space-x-3 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 rounded-md shrink-0"
             aria-label="Building Passport Home"
           >
-            <div className="w-9 h-9 rounded-md bg-slate-900 flex items-center justify-center text-white border border-slate-700 shadow-xs transition-transform group-hover:scale-105">
-              <Building2 className="w-5 h-5 text-slate-100" />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-semibold text-slate-900 tracking-tight text-lg leading-none">
-                Building Passport
-              </span>
-              <span className="text-[11px] text-slate-500 font-mono tracking-wider uppercase mt-1">
-                Civil Digital Identity
-              </span>
-            </div>
+            <BuildingPassportLogo size={38} showText={true} subtitle={true} priority={true} />
           </Link>
 
           {/* Desktop Navigation Links */}

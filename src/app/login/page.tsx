@@ -3,10 +3,11 @@
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Building2, Shield, ArrowRight, KeyRound, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Shield, ArrowRight, KeyRound, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { BuildingPassportLogo } from "@/components/brand/BuildingPassportLogo";
 
 function LoginFormContent() {
   const router = useRouter();
@@ -51,8 +52,8 @@ function LoginFormContent() {
     <div className="max-w-md w-full">
       {/* Header */}
       <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-slate-900 text-white shadow-xs mb-3 border border-slate-700">
-          <Building2 className="w-6 h-6 text-slate-100" />
+        <div className="flex justify-center mb-3">
+          <BuildingPassportLogo size={54} showText={false} priority={true} />
         </div>
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">
           Building Passport Portal

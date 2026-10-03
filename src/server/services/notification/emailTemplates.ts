@@ -93,7 +93,7 @@ If you did not create this account, you can safely ignore this email.
   <div class="container">
     <div class="header">
       <h1>Building Passport</h1>
-      <p>Civil Digital Identity</p>
+      <p style="color: #34d399; font-weight: 600;">घर की पहचान • National Civil Registry</p>
     </div>
     <div class="content">
       <h2>Verify your Building Passport account</h2>

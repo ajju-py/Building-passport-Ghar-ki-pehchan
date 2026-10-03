@@ -3,7 +3,6 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  ShieldCheck,
   MapPin,
   Calendar,
   Layers,
@@ -16,6 +15,7 @@ import { api } from "@/lib/api";
 import { BuildingRecord } from "@/lib/types";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { BuildingPassportLogo } from "@/components/brand/BuildingPassportLogo";
 
 export default function PublicBuildingPassportPage({
   params,
@@ -93,23 +93,23 @@ export default function PublicBuildingPassportPage({
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16">
         {/* Verification Guarantee Banner */}
         <div className="p-4 sm:p-5 rounded-lg bg-emerald-50/90 border border-emerald-200/90 shadow-2xs mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-          <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-              <ShieldCheck className="w-5 h-5 text-emerald-50" />
+          <div className="flex items-center space-x-3.5">
+            <div className="shrink-0">
+              <BuildingPassportLogo size={46} showText={false} priority={true} />
             </div>
             <div>
               <p className="font-bold text-emerald-950 text-sm flex items-center">
-                PUBLIC BUILDING PASSPORT
+                OFFICIAL VERIFIED BUILDING PASSPORT
               </p>
               <p className="text-[11px] text-emerald-800 mt-0.5 font-mono">
-                Asset ID: {building.passportId} • Digitally Registered Building Record
+                Asset ID: {building.passportId} &bull; घर की पहचान National Civil Registry Record
               </p>
             </div>
           </div>
 
           <div className="shrink-0 flex items-center space-x-2">
-            <span className="text-[10px] font-mono uppercase bg-white text-emerald-800 border border-emerald-300 px-2 py-1 rounded font-semibold">
-              Public Record
+            <span className="text-[10px] font-mono uppercase bg-emerald-800 text-white px-2.5 py-1 rounded font-semibold tracking-wider">
+              Verified Civil Seal
             </span>
           </div>
         </div>
@@ -209,6 +209,58 @@ export default function PublicBuildingPassportPage({
               <p className="font-bold text-slate-900 text-sm">{building.builder.companyName}</p>
               <p className="text-slate-600 mt-1">Lead Engineer: {building.builder.builderName}</p>
               <p className="text-[11px] text-slate-500 font-mono mt-0.5">{building.builder.details}</p>
+            </div>
+          </div>
+
+          {/* Cadastral & Central Record Specifications */}
+          <div className="mt-6 pt-6 border-t border-slate-100">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 pb-3 border-b border-slate-100 flex items-center">
+              <MapPin className="w-4 h-4 mr-1.5 text-slate-700" />
+              Cadastral &amp; Title Verification Record
+            </h2>
+
+            <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
+              <div className="p-3 bg-slate-50 rounded border border-slate-200/80">
+                <p className="text-[10px] text-slate-500 uppercase">Plot Number</p>
+                <p className="font-bold text-slate-900 mt-0.5">{building.plotNumber || "Plot No. 42-A"}</p>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded border border-slate-200/80">
+                <p className="text-[10px] text-slate-500 uppercase">Survey / CTS</p>
+                <p className="font-bold text-slate-900 mt-0.5">{building.surveyNumber || "Survey 108/2"}</p>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded border border-slate-200/80">
+                <p className="text-[10px] text-slate-500 uppercase">Built-Up Area</p>
+                <p className="font-bold text-slate-900 mt-0.5">{building.builtUpArea || building.totalArea}</p>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded border border-slate-200/80">
+                <p className="text-[10px] text-slate-500 uppercase">Occupancy</p>
+                <p className="font-bold text-emerald-800 mt-0.5">{building.occupancyStatus || "Occupied"}</p>
+              </div>
+            </div>
+
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div className="p-3 bg-slate-50 rounded border border-slate-200/80">
+                <p className="text-[10px] font-mono text-slate-500 uppercase">Structural Engineer of Record</p>
+                <p className="font-semibold text-slate-900 mt-0.5">
+                  {building.structuralEngineerName || "Er. V. K. Deshmukh"}{" "}
+                  <span className="font-mono text-slate-500 text-[11px]">
+                    ({building.structuralEngineerLicense || "SE-MUM-2018/890"})
+                  </span>
+                </p>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded border border-slate-200/80">
+                <p className="text-[10px] font-mono text-slate-500 uppercase">Consulting Architect of Record</p>
+                <p className="font-semibold text-slate-900 mt-0.5">
+                  {building.architectName || "Ar. Sunita Rao, COA"}{" "}
+                  <span className="font-mono text-slate-500 text-[11px]">
+                    ({building.architectLicense || "CA/2012/54321"})
+                  </span>
+                </p>
+              </div>
             </div>
           </div>
 

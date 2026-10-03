@@ -3,7 +3,6 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  Building2,
   FileCheck2,
   AlertTriangle,
   Wrench,
@@ -23,6 +22,8 @@ import {
   Printer,
   ChevronLeft,
   Activity,
+  ShieldCheck,
+  History,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import {
@@ -39,6 +40,12 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import BuildingHealthSection from "@/components/health/BuildingHealthSection";
 import BuildingComplianceSection from "@/components/compliance/BuildingComplianceSection";
+import { BuildingPassportLogo } from "@/components/brand/BuildingPassportLogo";
+import DrawingsSection from "@/components/central-record/DrawingsSection";
+import ApprovalsSection from "@/components/central-record/ApprovalsSection";
+import IdentityVerificationSection from "@/components/central-record/IdentityVerificationSection";
+import AuditTrailSection from "@/components/central-record/AuditTrailSection";
+import GisLocationCard from "@/components/central-record/GisLocationCard";
 
 export default function BuildingDetailPage({
   params,
@@ -53,7 +60,20 @@ export default function BuildingDetailPage({
   const [maintenance, setMaintenance] = useState<MaintenanceRecord[]>([]);
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
   const [activeTab, setActiveTab] = useState<
-    "overview" | "health" | "compliance" | "inspections" | "defects" | "maintenance" | "documents" | "photos" | "qr" | "report"
+    | "overview"
+    | "drawings"
+    | "approvals"
+    | "identity"
+    | "health"
+    | "compliance"
+    | "inspections"
+    | "defects"
+    | "maintenance"
+    | "documents"
+    | "photos"
+    | "audit"
+    | "qr"
+    | "report"
   >("overview");
 
   const [loading, setLoading] = useState(true);
@@ -283,8 +303,8 @@ export default function BuildingDetailPage({
         <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-2xs">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
             <div className="flex items-start space-x-4">
-              <div className="w-14 h-14 rounded-lg bg-slate-900 text-white flex items-center justify-center shrink-0 border border-slate-700 shadow-xs">
-                <Building2 className="w-8 h-8 text-slate-100" />
+              <div className="shrink-0">
+                <BuildingPassportLogo size={58} showText={false} priority={true} />
               </div>
 
               <div>
@@ -367,16 +387,20 @@ export default function BuildingDetailPage({
           </div>
 
           {/* Navigation Tabs */}
-          <div className="mt-6 pt-4 border-t border-slate-100 flex items-center space-x-1 overflow-x-auto text-xs font-medium">
+          <div className="mt-6 pt-4 border-t border-slate-100 flex items-center space-x-1 overflow-x-auto text-xs font-medium pb-1">
             {[
-              { id: "overview", label: "Civil Specs & Overview", icon: Layers },
+              { id: "overview", label: "Overview & GIS", icon: Layers },
+              { id: "drawings", label: "Drawings & Revisions", icon: Layers },
+              { id: "approvals", label: "Statutory Approvals & NOCs", icon: ShieldCheck },
+              { id: "identity", label: "Owner Verification", icon: Shield },
               { id: "health", label: "Health Assessment", icon: Activity },
               { id: "compliance", label: "Construction Rules", icon: FileCheck2 },
               { id: "inspections", label: `Inspections (${inspections.length})`, icon: FileCheck2 },
               { id: "defects", label: `Defects (${openDefectsCount} Open)`, icon: AlertTriangle },
               { id: "maintenance", label: "Maintenance Ledger", icon: Wrench },
-              { id: "documents", label: `Blueprints & Permits (${documents.length})`, icon: FileText },
+              { id: "documents", label: `Documents (${documents.length})`, icon: FileText },
               { id: "photos", label: `Photographs (${building.photographs.length})`, icon: Camera },
+              { id: "audit", label: "Audit Trail", icon: History },
               { id: "qr", label: "Digital QR Passport", icon: QrCode },
               { id: "report", label: "Consolidated Dossier", icon: Printer },
             ].map((tab) => {
@@ -504,8 +528,22 @@ export default function BuildingDetailPage({
                   </div>
                 </div>
               </div>
+
+              {/* GIS, Coordinates & Cadastral Mapping */}
+              <div className="lg:col-span-3">
+                <GisLocationCard building={building} />
+              </div>
             </div>
           )}
+
+          {/* TAB: DRAWINGS & BLUEPRINTS ARCHITECTURE */}
+          {activeTab === "drawings" && <DrawingsSection building={building} />}
+
+          {/* TAB: STATUTORY CLEARANCES & NOCS */}
+          {activeTab === "approvals" && <ApprovalsSection building={building} />}
+
+          {/* TAB: OWNER IDENTITY VERIFICATION (SANDBOX GATEWAY) */}
+          {activeTab === "identity" && <IdentityVerificationSection building={building} />}
 
           {/* TAB 2: INSPECTIONS */}
           {activeTab === "inspections" && (
@@ -991,6 +1029,11 @@ export default function BuildingDetailPage({
           {/* TAB: CONSTRUCTION RULES & COMPLIANCE */}
           {activeTab === "compliance" && (
             <BuildingComplianceSection building={building} />
+          )}
+
+          {/* TAB: IMMUTABLE AUDIT TRAIL */}
+          {activeTab === "audit" && (
+            <AuditTrailSection building={building} />
           )}
         </div>
       </main>

@@ -19,6 +19,7 @@ import { api } from "@/lib/api";
 import { BuildingRecord, DefectRecord, MaintenanceRecord } from "@/lib/types";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { BuildingPassportLogo } from "@/components/brand/BuildingPassportLogo";
 
 interface HealthInfo {
   status: string;
@@ -147,22 +148,25 @@ export default function DashboardPage() {
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16">
         {/* Top Header / Context */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between pb-6 border-b border-slate-200">
-          <div>
-            <div className="flex items-center space-x-2">
-              <span className="text-[11px] font-mono uppercase bg-slate-900 text-white px-2 py-0.5 rounded font-semibold tracking-wider">
-                Civil Digital Identity
-              </span>
-              <span className="text-xs font-mono text-slate-500">
-                Civil Infrastructure Ledger
-              </span>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between pb-6 border-b border-slate-200 gap-4">
+          <div className="flex items-start gap-3.5">
+            <BuildingPassportLogo size={52} showText={false} priority={true} />
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="text-[11px] font-mono uppercase bg-emerald-800 text-white px-2 py-0.5 rounded font-semibold tracking-wider">
+                  Verified Civil Record
+                </span>
+                <span className="text-xs font-mono text-slate-500">
+                  घर की पहचान • National Civil Ledger
+                </span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">
+                Building Information Management Dashboard
+              </h1>
+              <p className="text-xs text-slate-600 mt-1">
+                Verifiable structural identities, digital blueprints, statutory NOCs, and lifecycle audits.
+              </p>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">
-              Building Information Management Dashboard
-            </h1>
-            <p className="text-xs text-slate-600 mt-1">
-              Verifiable structural identities, digital inspection audits, and lifecycle management.
-            </p>
           </div>
 
           <div className="mt-4 md:mt-0 flex items-center space-x-3">

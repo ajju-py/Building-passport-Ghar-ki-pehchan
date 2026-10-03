@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Building2, UserPlus, AlertCircle, ShieldCheck, RefreshCw, Mail, ExternalLink, ArrowLeft } from "lucide-react";
+import { UserPlus, AlertCircle, ShieldCheck, RefreshCw, Mail, ExternalLink, ArrowLeft } from "lucide-react";
 import { UserRole } from "@/lib/types";
 import { api } from "@/lib/api";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { BuildingPassportLogo } from "@/components/brand/BuildingPassportLogo";
 
 export default function RegisterPage() {
   // Step state: 1 = Details, 2 = Check Your Email
@@ -105,11 +106,13 @@ export default function RegisterPage() {
         <div className="max-w-md w-full">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-slate-900 text-white shadow-xs mb-3 border border-slate-700">
+            <div className="flex justify-center mb-3">
               {step === 1 ? (
-                <Building2 className="w-6 h-6 text-slate-100" />
+                <BuildingPassportLogo size={54} showText={false} priority={true} />
               ) : (
-                <Mail className="w-6 h-6 text-slate-100" />
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-slate-900 text-white shadow-xs border border-slate-700">
+                  <Mail className="w-6 h-6 text-slate-100" />
+                </div>
               )}
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">

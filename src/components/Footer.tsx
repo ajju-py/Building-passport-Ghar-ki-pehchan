@@ -1,6 +1,7 @@
 "use client";
 
-import { Building2, ArrowUp } from "lucide-react";
+import { ArrowUp } from "lucide-react";
+import { BuildingPassportLogo } from "@/components/brand/BuildingPassportLogo";
 
 export default function Footer() {
   const scrollToTop = () => {
@@ -15,14 +16,12 @@ export default function Footer() {
           
           {/* Brand Col */}
           <div className="md:col-span-5 space-y-4">
-            <div className="flex items-center space-x-2.5">
-              <div className="w-8 h-8 rounded bg-slate-900 flex items-center justify-center text-white border border-slate-700">
-                <Building2 className="w-4 h-4 text-emerald-400" aria-hidden="true" />
-              </div>
-              <span className="font-semibold text-white tracking-wider text-base">
-                Building Passport
-              </span>
-            </div>
+            <BuildingPassportLogo
+              size={40}
+              showText={true}
+              textClassName="[&_span.text-slate-900]:text-white"
+              subtitle={true}
+            />
             <p className="text-slate-400 text-xs font-sans leading-relaxed max-w-sm">
               Digital identity and lifecycle management platform for civil structures, architectural drawings, inspection records, and predictive building health.
             </p>

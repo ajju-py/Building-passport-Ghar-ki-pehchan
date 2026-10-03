@@ -16,6 +16,13 @@ import {
   AccountStatus,
   OtpPurpose,
   BuildingComplianceEvaluation,
+  DrawingRecord,
+  DrawingType,
+  DrawingApprovalStatus,
+  RegulatoryApprovalRecord,
+  ApprovalType,
+  OwnerIdentityVerificationRecord,
+  AuditLogRecord,
 } from "./types";
 
 export interface SystemHealthData {
@@ -447,6 +454,136 @@ export const api = {
           body: JSON.stringify({}),
         }
       );
+    },
+  },
+
+  // Drawings & Blueprints
+  drawings: {
+    async list(buildingId: string, type?: DrawingType): Promise<DrawingRecord[]> {
+      const qs = type ? `?type=${encodeURIComponent(type)}` : "";
+      return request<DrawingRecord[]>(`/api/buildings/${encodeURIComponent(buildingId)}/drawings${qs}`);
+    },
+
+    async upload(buildingId: string, formData: FormData): Promise<DrawingRecord> {
+      const url = `/api/buildings/${encodeURIComponent(buildingId)}/drawings`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: getAuthHeader(),
+        body: formData,
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Drawing upload failed");
+      }
+      return data.data as DrawingRecord;
+    },
+
+    async updateStatus(drawingId: string, status: DrawingApprovalStatus): Promise<DrawingRecord> {
+      return request<DrawingRecord>(`/api/drawings/${encodeURIComponent(drawingId)}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+    },
+  },
+
+  // Regulatory Approvals & NOCs
+  approvals: {
+    async list(buildingId: string, type?: ApprovalType): Promise<RegulatoryApprovalRecord[]> {
+      const qs = type ? `?type=${encodeURIComponent(type)}` : "";
+      return request<RegulatoryApprovalRecord[]>(`/api/buildings/${encodeURIComponent(buildingId)}/approvals${qs}`);
+    },
+
+    async create(buildingId: string, data: Partial<RegulatoryApprovalRecord>): Promise<RegulatoryApprovalRecord> {
+      return request<RegulatoryApprovalRecord>(`/api/buildings/${encodeURIComponent(buildingId)}/approvals`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+    },
+
+    async update(approvalId: string, data: Partial<RegulatoryApprovalRecord>): Promise<RegulatoryApprovalRecord> {
+      return request<RegulatoryApprovalRecord>(`/api/approvals/${encodeURIComponent(approvalId)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+    },
+
+    async delete(approvalId: string): Promise<boolean> {
+      await request<{ success: boolean }>(`/api/approvals/${encodeURIComponent(approvalId)}`, {
+        method: "DELETE",
+      });
+      return true;
+    },
+  },
+
+  // Owner Identity Verification (Sandbox)
+  identity: {
+    async get(buildingId: string): Promise<OwnerIdentityVerificationRecord | null> {
+      return request<OwnerIdentityVerificationRecord | null>(
+        `/api/buildings/${encodeURIComponent(buildingId)}/identity`
+      );
+    },
+
+    async initiate(
+      buildingId: string,
+      data: {
+        ownerName: string;
+        verificationMethod: string;
+        maskedId: string;
+        consentReference?: string;
+      }
+    ): Promise<{
+      verification: OwnerIdentityVerificationRecord;
+      sandbox: {
+        isSandbox: boolean;
+        sessionReference: string;
+        testOtpHint: string;
+        notice: string;
+      };
+    }> {
+      return request<{
+        verification: OwnerIdentityVerificationRecord;
+        sandbox: {
+          isSandbox: boolean;
+          sessionReference: string;
+          testOtpHint: string;
+          notice: string;
+        };
+      }>(`/api/buildings/${encodeURIComponent(buildingId)}/identity/initiate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+    },
+
+    async verify(
+      buildingId: string,
+      verificationId: string,
+      otp: string
+    ): Promise<OwnerIdentityVerificationRecord> {
+      return request<OwnerIdentityVerificationRecord>(
+        `/api/buildings/${encodeURIComponent(buildingId)}/identity/verify`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ verificationId, otp }),
+        }
+      );
+    },
+  },
+
+  // Audit Logs
+  auditLogs: {
+    async listForBuilding(buildingId: string, limit = 50): Promise<AuditLogRecord[]> {
+      return request<AuditLogRecord[]>(
+        `/api/buildings/${encodeURIComponent(buildingId)}/audit-logs?limit=${limit}`
+      );
+    },
+
+    async listRecent(limit = 100): Promise<AuditLogRecord[]> {
+      return request<AuditLogRecord[]>(`/api/audit-logs?limit=${limit}`);
     },
   },
 };

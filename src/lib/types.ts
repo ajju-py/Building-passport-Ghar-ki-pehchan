@@ -79,7 +79,7 @@ export interface OwnerInfo {
 export interface BuildingPhotograph {
   url: string;
   caption: string;
-  category: "main" | "additional" | "construction";
+  category: "main" | "additional" | "construction" | "exterior" | "interior" | "elevation" | "structural" | "inspection" | "site";
   isPrivate: boolean;
   uploadedAt: string;
 }
@@ -103,6 +103,17 @@ export interface BuildingRecord {
   photographs: BuildingPhotograph[];
   condition: string;
   maintenanceStatus: string;
+  plotNumber?: string;
+  surveyNumber?: string;
+  builtUpArea?: string;
+  occupancyStatus?: string;
+  constructionStatus?: string;
+  registrationDate?: string;
+  structuralEngineerName?: string;
+  structuralEngineerLicense?: string;
+  architectName?: string;
+  architectLicense?: string;
+  gisPolygon?: Record<string, unknown> | Array<unknown> | null;
   createdBy?: string;
   createdAt: string;
   updatedAt: string;
@@ -389,3 +400,124 @@ export type {
   BuildingComplianceEvaluation,
 } from "./construction-rules/types";
 
+// ==============================================================================
+// CENTRAL RECORD EXTENSION: DRAWINGS, APPROVALS, IDENTITY & AUDIT
+// ==============================================================================
+
+export type DrawingType =
+  | "architectural"
+  | "structural"
+  | "electrical"
+  | "plumbing"
+  | "fire_safety"
+  | "site_plan"
+  | "as_built"
+  | "other";
+
+export type DrawingApprovalStatus =
+  | "DRAFT"
+  | "SUBMITTED"
+  | "UNDER_REVIEW"
+  | "APPROVED"
+  | "SUPERSEDED"
+  | "REJECTED";
+
+export interface DrawingRecord {
+  id: string;
+  buildingId: string;
+  drawingType: DrawingType;
+  title: string;
+  version: number;
+  revisionCode: string;
+  isLatestApproved: boolean;
+  approvalStatus: DrawingApprovalStatus;
+  approvedBy?: string | null;
+  approvedAt?: string | null;
+  storageReference: string;
+  originalFilename: string;
+  fileSize: number;
+  mimeType: string;
+  scale?: string | null;
+  sheetNumber?: string | null;
+  uploadedBy?: string | null;
+  uploadedAt: string;
+  notes?: string | null;
+  url?: string;
+}
+
+export type ApprovalType =
+  | "building_permission"
+  | "fire_noc"
+  | "completion_certificate"
+  | "occupancy_certificate"
+  | "structural_stability"
+  | "environmental_clearance"
+  | "heritage_noc"
+  | "airport_authority_noc"
+  | "other";
+
+export type ApprovalStatus =
+  | "ACTIVE"
+  | "EXPIRED"
+  | "PENDING_RENEWAL"
+  | "REVOKED"
+  | "PROVISIONAL";
+
+export interface RegulatoryApprovalRecord {
+  id: string;
+  buildingId: string;
+  approvalType: ApprovalType;
+  issuingAuthority: string;
+  approvalNumber: string;
+  issueDate: string;
+  validUntil?: string | null;
+  status: ApprovalStatus;
+  documentStorageRef?: string | null;
+  documentFilename?: string | null;
+  remarks?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type IdentityVerificationMethod =
+  | "sandbox_aadhaar_otp"
+  | "digilocker_sandbox"
+  | "manual_authority_check"
+  | "authorized_civil_id";
+
+export type IdentityVerificationStatus =
+  | "PENDING"
+  | "VERIFIED"
+  | "FAILED"
+  | "NOT_VERIFIED";
+
+export interface OwnerIdentityVerificationRecord {
+  id: string;
+  buildingId: string;
+  ownerUserId?: string | null;
+  ownerName: string;
+  verificationMethod: IdentityVerificationMethod;
+  status: IdentityVerificationStatus;
+  documentRefType?: string | null;
+  documentMaskedId?: string | null;
+  providerReference?: string | null;
+  consentReference?: string | null;
+  verifiedAt?: string | null;
+  verifiedBy?: string | null;
+  remarks?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AuditLogRecord {
+  id: string;
+  actorId?: string | null;
+  actorName?: string | null;
+  actorRole?: string | null;
+  action: string;
+  entity: string;
+  entityId: string;
+  metadata?: Record<string, unknown>;
+  ipAddress?: string | null;
+  createdAt: string;
+}

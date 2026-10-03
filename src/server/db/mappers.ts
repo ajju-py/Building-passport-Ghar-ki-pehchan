@@ -16,6 +16,16 @@ import {
   RiskLevel,
   CategoryScores,
   ContributingFactor,
+  DrawingRecord,
+  DrawingType,
+  DrawingApprovalStatus,
+  RegulatoryApprovalRecord,
+  ApprovalType,
+  ApprovalStatus,
+  OwnerIdentityVerificationRecord,
+  IdentityVerificationMethod,
+  IdentityVerificationStatus,
+  AuditLogRecord,
 } from "@/lib/types";
 
 export interface BuildingDbRow {
@@ -51,6 +61,17 @@ export interface BuildingDbRow {
   qr_code_data_url: string | null;
   condition: string;
   maintenance_status: string;
+  plot_number?: string | null;
+  survey_number?: string | null;
+  built_up_area?: string | null;
+  occupancy_status?: string | null;
+  construction_status?: string | null;
+  registration_date?: Date | string | null;
+  structural_engineer_name?: string | null;
+  structural_engineer_license?: string | null;
+  architect_name?: string | null;
+  architect_license?: string | null;
+  gis_polygon?: Record<string, unknown> | Array<unknown> | string | null;
   created_by: string | null;
   created_at: Date | string;
   updated_at: Date | string;
@@ -61,7 +82,7 @@ export interface PhotographDbRow {
   building_id: string;
   url: string;
   caption: string | null;
-  category: "main" | "additional" | "construction";
+  category: "main" | "additional" | "construction" | "exterior" | "interior" | "elevation" | "structural" | "inspection" | "site";
   is_private: boolean;
   uploaded_at: Date | string;
 }
@@ -202,6 +223,17 @@ export function mapBuildingRow(
     photographs,
     condition: row.condition || "Good",
     maintenanceStatus: row.maintenance_status || "Up to Date",
+    plotNumber: row.plot_number || undefined,
+    surveyNumber: row.survey_number || undefined,
+    builtUpArea: row.built_up_area || undefined,
+    occupancyStatus: row.occupancy_status || "Occupied",
+    constructionStatus: row.construction_status || "Completed",
+    registrationDate: row.registration_date ? formatDateOnly(row.registration_date) : undefined,
+    structuralEngineerName: row.structural_engineer_name || undefined,
+    structuralEngineerLicense: row.structural_engineer_license || undefined,
+    architectName: row.architect_name || undefined,
+    architectLicense: row.architect_license || undefined,
+    gisPolygon: typeof row.gis_polygon === "string" ? JSON.parse(row.gis_polygon) : (row.gis_polygon || undefined),
     createdBy: row.created_by || undefined,
     createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : new Date(row.created_at).toISOString(),
     updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : new Date(row.updated_at).toISOString(),
@@ -345,6 +377,157 @@ export function mapHealthAssessmentRow(row: HealthAssessmentDbRow): HealthAssess
     engineType: row.engine_type,
     summaryExplanation: row.summary_explanation,
     assessedBy: row.assessed_by || null,
+    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : new Date(row.created_at).toISOString(),
+  };
+}
+
+// --- Drawings Mapper ---
+export interface DrawingDbRow {
+  id: string;
+  building_id: string;
+  drawing_type: string;
+  title: string;
+  version: number;
+  revision_code: string;
+  is_latest_approved: boolean;
+  approval_status: string;
+  approved_by: string | null;
+  approved_at: Date | string | null;
+  storage_reference: string;
+  original_filename: string;
+  file_size: number | string;
+  mime_type: string;
+  scale: string | null;
+  sheet_number: string | null;
+  uploaded_by: string | null;
+  uploaded_at: Date | string;
+  notes: string | null;
+}
+
+export function mapDrawingRow(row: DrawingDbRow): DrawingRecord {
+  return {
+    id: row.id,
+    buildingId: row.building_id,
+    drawingType: row.drawing_type as DrawingType,
+    title: row.title,
+    version: Number(row.version),
+    revisionCode: row.revision_code,
+    isLatestApproved: Boolean(row.is_latest_approved),
+    approvalStatus: row.approval_status as DrawingApprovalStatus,
+    approvedBy: row.approved_by || undefined,
+    approvedAt: row.approved_at ? (row.approved_at instanceof Date ? row.approved_at.toISOString() : new Date(row.approved_at).toISOString()) : undefined,
+    storageReference: row.storage_reference,
+    originalFilename: row.original_filename,
+    fileSize: Number(row.file_size),
+    mimeType: row.mime_type,
+    scale: row.scale || undefined,
+    sheetNumber: row.sheet_number || undefined,
+    uploadedBy: row.uploaded_by || undefined,
+    uploadedAt: row.uploaded_at instanceof Date ? row.uploaded_at.toISOString() : new Date(row.uploaded_at).toISOString(),
+    notes: row.notes || undefined,
+    url: `/uploads/${row.storage_reference}`,
+  };
+}
+
+// --- Regulatory Approval Mapper ---
+export interface RegulatoryApprovalDbRow {
+  id: string;
+  building_id: string;
+  approval_type: string;
+  issuing_authority: string;
+  approval_number: string;
+  issue_date: Date | string;
+  valid_until: Date | string | null;
+  status: string;
+  document_storage_ref: string | null;
+  document_filename: string | null;
+  remarks: string | null;
+  created_at: Date | string;
+  updated_at: Date | string;
+}
+
+export function mapRegulatoryApprovalRow(row: RegulatoryApprovalDbRow): RegulatoryApprovalRecord {
+  return {
+    id: row.id,
+    buildingId: row.building_id,
+    approvalType: row.approval_type as ApprovalType,
+    issuingAuthority: row.issuing_authority,
+    approvalNumber: row.approval_number,
+    issueDate: formatDateOnly(row.issue_date),
+    validUntil: row.valid_until ? formatDateOnly(row.valid_until) : undefined,
+    status: row.status as ApprovalStatus,
+    documentStorageRef: row.document_storage_ref || undefined,
+    documentFilename: row.document_filename || undefined,
+    remarks: row.remarks || undefined,
+    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : new Date(row.created_at).toISOString(),
+    updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : new Date(row.updated_at).toISOString(),
+  };
+}
+
+// --- Owner Identity Verification Mapper ---
+export interface OwnerIdentityVerificationDbRow {
+  id: string;
+  building_id: string;
+  owner_user_id: string | null;
+  owner_name: string;
+  verification_method: string;
+  status: string;
+  document_ref_type: string | null;
+  document_masked_id: string | null;
+  provider_reference: string | null;
+  consent_reference: string | null;
+  verified_at: Date | string | null;
+  verified_by: string | null;
+  remarks: string | null;
+  created_at: Date | string;
+  updated_at: Date | string;
+}
+
+export function mapOwnerIdentityVerificationRow(row: OwnerIdentityVerificationDbRow): OwnerIdentityVerificationRecord {
+  return {
+    id: row.id,
+    buildingId: row.building_id,
+    ownerUserId: row.owner_user_id || undefined,
+    ownerName: row.owner_name,
+    verificationMethod: row.verification_method as IdentityVerificationMethod,
+    status: row.status as IdentityVerificationStatus,
+    documentRefType: row.document_ref_type || undefined,
+    documentMaskedId: row.document_masked_id || undefined,
+    providerReference: row.provider_reference || undefined,
+    consentReference: row.consent_reference || undefined,
+    verifiedAt: row.verified_at ? (row.verified_at instanceof Date ? row.verified_at.toISOString() : new Date(row.verified_at).toISOString()) : undefined,
+    verifiedBy: row.verified_by || undefined,
+    remarks: row.remarks || undefined,
+    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : new Date(row.created_at).toISOString(),
+    updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : new Date(row.updated_at).toISOString(),
+  };
+}
+
+// --- Audit Log Mapper ---
+export interface AuditLogDbRow {
+  id: string;
+  actor_id: string | null;
+  actor_name: string | null;
+  actor_role: string | null;
+  action: string;
+  entity: string;
+  entity_id: string;
+  metadata: Record<string, unknown> | string;
+  ip_address: string | null;
+  created_at: Date | string;
+}
+
+export function mapAuditLogRow(row: AuditLogDbRow): AuditLogRecord {
+  return {
+    id: row.id,
+    actorId: row.actor_id || undefined,
+    actorName: row.actor_name || undefined,
+    actorRole: row.actor_role || undefined,
+    action: row.action,
+    entity: row.entity,
+    entityId: row.entity_id,
+    metadata: typeof row.metadata === "string" ? JSON.parse(row.metadata) : (row.metadata || {}),
+    ipAddress: row.ip_address || undefined,
     createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : new Date(row.created_at).toISOString(),
   };
 }

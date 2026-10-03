@@ -36,8 +36,12 @@ import {
   maintenanceCreateSchema,
   validateBody,
 } from "../middlewares/validation.middleware";
-import { ApiResponse, UserRole, AccountStatus } from "@/lib/types";
+import { ApiResponse, UserRole, AccountStatus, DrawingType, DrawingApprovalStatus, ApprovalType } from "@/lib/types";
 import { createAuthRateLimiter } from "../middlewares/rateLimiter";
+import { DrawingService } from "../services/drawing.service";
+import { ApprovalService } from "../services/approval.service";
+import { IdentityService } from "../services/identity.service";
+import { AuditService } from "../services/audit.service";
 
 
 // Setup multer memory storage for streaming directly into storageService
@@ -1417,6 +1421,314 @@ app.get(
         success: false,
         error: (err as Error).message || "Failed to evaluate construction compliance rules.",
       });
+    }
+  }
+);
+
+// -----------------------------------------------------------
+// DRAWINGS & BLUEPRINTS MANAGEMENT ROUTES
+// -----------------------------------------------------------
+app.get("/api/buildings/:id/drawings", async (req: Request, res: Response) => {
+  try {
+    const typeParam = req.query.type as DrawingType | undefined;
+    const drawings = await DrawingService.getDrawings(String(req.params.id), typeParam);
+    res.json({ success: true, data: drawings });
+  } catch (err: unknown) {
+    res.status(500).json({ success: false, error: (err as Error).message });
+  }
+});
+
+app.post(
+  "/api/buildings/:id/drawings",
+  requireAuth,
+  requireRole("admin", "engineer", "owner"),
+  upload.single("file"),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const access = await BuildingService.checkBuildingModificationAccess(
+        String(req.params.id),
+        req.user!
+      );
+      if (!access.allowed) {
+        res.status(access.status).json({ success: false, error: access.message });
+        return;
+      }
+
+      if (!req.file) {
+        res.status(400).json({ success: false, error: "No drawing or blueprint file attached." });
+        return;
+      }
+
+      const { drawingType, title, scale, sheetNumber, notes } = req.body;
+      const validTypes: DrawingType[] = [
+        "architectural", "structural", "electrical", "plumbing", "fire_safety",
+        "site_plan", "as_built", "other"
+      ];
+      if (drawingType && !validTypes.includes(drawingType)) {
+        res.status(400).json({ success: false, error: `Invalid drawing type '${drawingType}'.` });
+        return;
+      }
+
+      const stored = await storageService.save(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.mimetype || "application/octet-stream"
+      );
+
+      const drawing = await DrawingService.createDrawing(
+        String(req.params.id),
+        {
+          drawingType: drawingType || "architectural",
+          title: title || req.file.originalname,
+          storageReference: stored.storageRef,
+          originalFilename: req.file.originalname,
+          fileSize: req.file.size,
+          mimeType: req.file.mimetype || "application/octet-stream",
+          scale,
+          sheetNumber,
+          notes,
+        },
+        req.user?.userId
+      );
+
+      res.status(201).json({
+        success: true,
+        message: `Drawing ${drawing.revisionCode} (${drawing.drawingType}) registered successfully.`,
+        data: drawing,
+      });
+    } catch (err: unknown) {
+      res.status(400).json({ success: false, error: (err as Error).message });
+    }
+  }
+);
+
+app.patch(
+  "/api/drawings/:id/status",
+  requireAuth,
+  requireRole("admin", "engineer"),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { status } = req.body;
+      const validStatuses: DrawingApprovalStatus[] = [
+        "SUBMITTED", "UNDER_REVIEW", "APPROVED", "REJECTED", "SUPERSEDED"
+      ];
+      if (!status || !validStatuses.includes(status)) {
+        res.status(400).json({ success: false, error: `Invalid status '${status}'.` });
+        return;
+      }
+
+      const updated = await DrawingService.setApprovalStatus(
+        String(req.params.id),
+        status,
+        req.user!.userId,
+        req.user!.name
+      );
+
+      res.json({ success: true, message: `Drawing status changed to ${status}.`, data: updated });
+    } catch (err: unknown) {
+      res.status(400).json({ success: false, error: (err as Error).message });
+    }
+  }
+);
+
+// -----------------------------------------------------------
+// REGULATORY APPROVALS & NOCS ROUTES
+// -----------------------------------------------------------
+app.get("/api/buildings/:id/approvals", async (req: Request, res: Response) => {
+  try {
+    const typeParam = req.query.type as ApprovalType | undefined;
+    const approvals = await ApprovalService.getApprovals(String(req.params.id), typeParam);
+    res.json({ success: true, data: approvals });
+  } catch (err: unknown) {
+    res.status(500).json({ success: false, error: (err as Error).message });
+  }
+});
+
+app.post(
+  "/api/buildings/:id/approvals",
+  requireAuth,
+  requireRole("admin", "engineer", "owner"),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const access = await BuildingService.checkBuildingModificationAccess(
+        String(req.params.id),
+        req.user!
+      );
+      if (!access.allowed) {
+        res.status(access.status).json({ success: false, error: access.message });
+        return;
+      }
+
+      const approval = await ApprovalService.createApproval(
+        String(req.params.id),
+        req.body,
+        req.user?.userId,
+        req.user?.name
+      );
+
+      res.status(201).json({
+        success: true,
+        message: `${approval.approvalType} record registered successfully.`,
+        data: approval,
+      });
+    } catch (err: unknown) {
+      res.status(400).json({ success: false, error: (err as Error).message });
+    }
+  }
+);
+
+app.put(
+  "/api/approvals/:id",
+  requireAuth,
+  requireRole("admin", "engineer", "owner"),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const updated = await ApprovalService.updateApproval(
+        String(req.params.id),
+        req.body,
+        req.user?.userId,
+        req.user?.name
+      );
+      res.json({ success: true, message: "Approval record updated.", data: updated });
+    } catch (err: unknown) {
+      res.status(400).json({ success: false, error: (err as Error).message });
+    }
+  }
+);
+
+app.delete(
+  "/api/approvals/:id",
+  requireAuth,
+  requireRole("admin", "engineer"),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      await ApprovalService.deleteApproval(
+        String(req.params.id),
+        req.user?.userId,
+        req.user?.name
+      );
+      res.json({ success: true, message: "Approval record deleted successfully." });
+    } catch (err: unknown) {
+      res.status(400).json({ success: false, error: (err as Error).message });
+    }
+  }
+);
+
+// -----------------------------------------------------------
+// OWNER IDENTITY VERIFICATION ROUTES (SANDBOX DISCLOSURE)
+// -----------------------------------------------------------
+app.get("/api/buildings/:id/identity", async (req: Request, res: Response) => {
+  try {
+    const verification = await IdentityService.getVerification(String(req.params.id));
+    res.json({ success: true, data: verification });
+  } catch (err: unknown) {
+    res.status(500).json({ success: false, error: (err as Error).message });
+  }
+});
+
+app.post(
+  "/api/buildings/:id/identity/initiate",
+  requireAuth,
+  requireRole("admin", "owner", "engineer"),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const access = await BuildingService.checkBuildingModificationAccess(
+        String(req.params.id),
+        req.user!
+      );
+      if (!access.allowed) {
+        res.status(access.status).json({ success: false, error: access.message });
+        return;
+      }
+
+      const result = await IdentityService.initiateVerification(
+        {
+          buildingId: String(req.params.id),
+          ownerUserId: req.user?.userId,
+          ownerName: req.body.ownerName,
+          verificationMethod: req.body.verificationMethod,
+          maskedId: req.body.maskedId,
+          consentReference: req.body.consentReference,
+        },
+        req.user?.userId,
+        req.user?.name
+      );
+
+      res.status(201).json({
+        success: true,
+        message: "Identity verification initiated via Showcase Sandbox Gateway.",
+        data: result,
+      });
+    } catch (err: unknown) {
+      res.status(400).json({ success: false, error: (err as Error).message });
+    }
+  }
+);
+
+app.post(
+  "/api/buildings/:id/identity/verify",
+  requireAuth,
+  requireRole("admin", "owner", "engineer"),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const access = await BuildingService.checkBuildingModificationAccess(
+        String(req.params.id),
+        req.user!
+      );
+      if (!access.allowed) {
+        res.status(access.status).json({ success: false, error: access.message });
+        return;
+      }
+
+      const { verificationId, otp } = req.body;
+      const result = await IdentityService.confirmVerification(
+        verificationId,
+        String(otp).trim(),
+        req.user?.userId,
+        req.user?.name
+      );
+
+      res.json({
+        success: true,
+        message: result.status === "VERIFIED"
+          ? "Owner identity verified successfully."
+          : "Verification failed. Invalid OTP entered.",
+        data: result,
+      });
+    } catch (err: unknown) {
+      res.status(400).json({ success: false, error: (err as Error).message });
+    }
+  }
+);
+
+// -----------------------------------------------------------
+// AUDIT LOGS ROUTES
+// -----------------------------------------------------------
+app.get(
+  "/api/buildings/:id/audit-logs",
+  requireAuth,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const limit = req.query.limit ? parseInt(String(req.query.limit), 10) : 50;
+      const logs = await AuditService.getLogsForEntity("building", String(req.params.id), limit);
+      res.json({ success: true, data: logs });
+    } catch (err: unknown) {
+      res.status(500).json({ success: false, error: (err as Error).message });
+    }
+  }
+);
+
+app.get(
+  "/api/audit-logs",
+  requireAuth,
+  requireRole("admin"),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const limit = req.query.limit ? parseInt(String(req.query.limit), 10) : 100;
+      const logs = await AuditService.getRecentLogs(limit);
+      res.json({ success: true, data: logs });
+    } catch (err: unknown) {
+      res.status(500).json({ success: false, error: (err as Error).message });
     }
   }
 );

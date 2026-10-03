@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowRight, ShieldCheck, QrCode, HardHat, Compass, Layers, ChevronRight } from "lucide-react";
+import { BuildingPassportLogo } from "@/components/brand/BuildingPassportLogo";
 
 export default function Hero() {
   return (
@@ -15,12 +16,17 @@ export default function Hero() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
-          {/* Civil Tech Badge */}
-          <div className="inline-flex items-center space-x-2 bg-slate-100 border border-slate-200 px-3.5 py-1.5 rounded-full text-xs font-mono text-slate-700 mb-6 shadow-2xs">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 motion-safe:animate-pulse" aria-hidden="true"></span>
-            <span className="font-semibold uppercase tracking-wider text-[11px]">CIVIL INFRASTRUCTURE SPECIFICATION</span>
-            <span className="text-slate-400" aria-hidden="true">|</span>
-            <span className="text-slate-600">DIGITAL IDENTITY PLATFORM</span>
+          {/* Civil Tech Badge with Official Verified Logo */}
+          <div className="flex flex-col items-center justify-center mb-6">
+            <div className="mb-3 transition-transform hover:scale-105 duration-200">
+              <BuildingPassportLogo size={72} showText={false} priority={true} />
+            </div>
+            <div className="inline-flex items-center space-x-2 bg-slate-100 border border-slate-200 px-3.5 py-1.5 rounded-full text-xs font-mono text-slate-700 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 motion-safe:animate-pulse" aria-hidden="true"></span>
+              <span className="font-semibold uppercase tracking-wider text-[11px]">CIVIL INFRASTRUCTURE SPECIFICATION</span>
+              <span className="text-slate-400" aria-hidden="true">|</span>
+              <span className="text-slate-600">घर की पहचान • DIGITAL PASSPORT</span>
+            </div>
           </div>
 
           {/* Main Title */}

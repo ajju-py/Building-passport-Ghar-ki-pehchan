@@ -16,32 +16,51 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Building Passport — Digital Identity & Lifecycle Management for Buildings",
+  title: "Building Passport — Ghar Ki Pehchan | Digital Civil Identity & Lifecycle",
   description:
-    "Building Passport creates a verifiable digital identity, decadal history, structural record, and intelligent condition assessment for every building asset.",
+    "Building Passport (घर की पहचान) provides a verified digital identity, statutory clearances, CAD blueprints, and structural lifecycle management for civil infrastructure.",
   keywords: [
     "Building Passport",
+    "Ghar Ki Pehchan",
     "Digital Building Identity",
     "Civil Engineering Tech",
     "BIM Asset Management",
     "Structural Health Record",
     "Building Lifecycle Management",
-    "Structured Building Information",
+    "National Civil Registry",
     "Smart Infrastructure",
   ],
-  authors: [{ name: "Building Passport OS Team" }],
+  authors: [{ name: "Building Passport National Project" }],
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/logo/building-passport-icon.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/logo/building-passport-192.png", sizes: "192x192", type: "image/png" },
+    ],
+  },
   openGraph: {
-    title: "Building Passport — Digital Identity for Every Building",
+    title: "Building Passport — Ghar Ki Pehchan",
     description:
-      "A digital identity, decadal structural history, and verifiable civil record system for modern infrastructure.",
+      "Official Digital Building Passport & Civil Registry. Verifiable record for structural integrity, statutory NOCs, and property governance.",
     type: "website",
-    siteName: "Building Passport",
+    siteName: "Building Passport — Ghar Ki Pehchan",
+    images: [
+      {
+        url: "/logo/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Building Passport — Ghar Ki Pehchan Verified Civil Record",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Building Passport — A Digital Identity for Every Building",
+    title: "Building Passport — Ghar Ki Pehchan",
     description:
-      "Consolidating structural specifications, maintenance history, floor plans, and defect records into a single digital identity.",
+      "Official Digital Building Passport & Civil Registry. Verifiable record for structural integrity, statutory NOCs, and property governance.",
+    images: ["/logo/og-image.png"],
   },
 };
 
