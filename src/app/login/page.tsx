@@ -15,6 +15,12 @@ function LoginFormContent() {
   const isVerified = searchParams.get("verified") === "true";
   const { login, quickLogin, isLoading, user } = useAuth();
 
+  const rawRedirect = searchParams.get("redirect") || searchParams.get("returnUrl");
+  const redirectTarget =
+    rawRedirect && rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
+      ? rawRedirect
+      : "/dashboard";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +33,7 @@ function LoginFormContent() {
 
     try {
       await login(email, password);
-      router.push("/dashboard");
+      router.push(redirectTarget);
     } catch (err: unknown) {
       setError((err as Error).message || "Invalid credentials. Please verify your email and password.");
     } finally {
@@ -40,7 +46,7 @@ function LoginFormContent() {
     setSubmitting(true);
     try {
       await quickLogin(role);
-      router.push("/dashboard");
+      router.push(redirectTarget);
     } catch (err: unknown) {
       setError((err as Error).message || "Failed to switch role session.");
     } finally {
@@ -71,10 +77,10 @@ function LoginFormContent() {
             <p className="font-semibold">Active Session Detected</p>
             <p className="mt-0.5">Logged in as {user.name} ({user.role.toUpperCase()})</p>
             <Link
-              href="/dashboard"
+              href={redirectTarget}
               className="mt-2 inline-flex items-center font-bold text-emerald-800 hover:underline"
             >
-              Continue to Dashboard <ArrowRight className="w-3.5 h-3.5 ml-1" />
+              Continue to {redirectTarget === "/buildings/new" ? "Building Registration" : "Dashboard"} <ArrowRight className="w-3.5 h-3.5 ml-1" />
             </Link>
           </div>
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -11,16 +11,26 @@ import {
   HardHat,
   User,
   ArrowRight,
+  ShieldAlert,
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 export default function NewBuildingPage() {
   const router = useRouter();
+  const { user, isLoading } = useAuth();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Authentication redirect for unauthenticated visitors
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.replace("/login?redirect=/buildings/new");
+    }
+  }, [isLoading, user, router]);
 
   // Initial Blank Form State
   const INITIAL_BLANK_FORM = {
@@ -146,6 +156,98 @@ export default function NewBuildingPage() {
       setLoading(false);
     }
   };
+
+  // Case 1: Checking authentication state (prevent flashing form)
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#faf9f6] flex flex-col justify-between selection:bg-slate-900 selection:text-white">
+        <Navbar />
+        <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16 flex flex-col items-center justify-center">
+          <div className="bg-white border border-slate-200 rounded-lg p-8 shadow-2xs text-center max-w-md w-full">
+            <div className="w-8 h-8 border-2 border-slate-900 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-sm font-semibold text-slate-900">Checking authentication...</p>
+            <p className="text-xs text-slate-500 font-mono mt-1">Verifying authorized civil credentials</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Case 1b: Unauthenticated - redirecting to login
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-[#faf9f6] flex flex-col justify-between selection:bg-slate-900 selection:text-white">
+        <Navbar />
+        <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16 flex flex-col items-center justify-center">
+          <div className="bg-white border border-slate-200 rounded-lg p-8 shadow-2xs text-center max-w-md w-full">
+            <div className="w-8 h-8 border-2 border-slate-900 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-sm font-semibold text-slate-900">Redirecting to login portal...</p>
+            <p className="text-xs text-slate-500 font-mono mt-1">Authentication required to register buildings</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Case 3: Authenticated but unauthorized role (only admin, engineer, owner allowed)
+  const isAuthorizedRole = ["admin", "engineer", "owner"].includes(user.role);
+  if (!isAuthorizedRole) {
+    return (
+      <div className="min-h-screen bg-[#faf9f6] flex flex-col justify-between selection:bg-slate-900 selection:text-white">
+        <Navbar />
+        <main className="flex-1 max-w-2xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16">
+          <div className="bg-white border border-rose-200 rounded-lg p-6 sm:p-8 shadow-2xs">
+            <div className="flex items-start space-x-3.5">
+              <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-rose-700 shrink-0">
+                <ShieldAlert className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center space-x-2">
+                  <span className="text-[11px] font-mono uppercase bg-rose-100 text-rose-800 px-2 py-0.5 rounded font-semibold">
+                    403 Forbidden
+                  </span>
+                  <span className="text-xs font-mono text-slate-500">
+                    Role Restriction
+                  </span>
+                </div>
+                <h1 className="text-xl font-bold text-slate-900 mt-2">
+                  Building Registration Restricted
+                </h1>
+                <p className="text-xs text-slate-600 mt-2 leading-relaxed">
+                  Your current account role (<strong>{user.role.toUpperCase()}</strong>) does not have authorization to register new civil buildings or issue digital passports.
+                </p>
+                <div className="mt-4 p-3.5 bg-slate-50 border border-slate-200 rounded-md text-xs text-slate-700">
+                  <p className="font-semibold text-slate-900 mb-1">Authorized Roles:</p>
+                  <ul className="list-disc list-inside space-y-1 font-mono text-[11px] text-slate-600">
+                    <li>Municipal Administrator (<span className="text-slate-900 font-semibold">admin</span>)</li>
+                    <li>Certified Structural Engineer (<span className="text-slate-900 font-semibold">engineer</span>)</li>
+                    <li>Property Owner / Facility Manager (<span className="text-slate-900 font-semibold">owner</span>)</li>
+                  </ul>
+                </div>
+                <div className="mt-6 flex flex-wrap items-center gap-3">
+                  <Link
+                    href="/buildings"
+                    className="inline-flex items-center space-x-2 px-4 py-2 rounded-md text-xs font-semibold uppercase tracking-wider text-white bg-slate-900 hover:bg-slate-800 transition-colors"
+                  >
+                    <span>Browse Public Registry</span>
+                  </Link>
+                  <Link
+                    href="/dashboard"
+                    className="inline-flex items-center space-x-2 px-4 py-2 rounded-md text-xs font-semibold uppercase tracking-wider text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 transition-colors"
+                  >
+                    <span>Return to Dashboard</span>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#faf9f6] flex flex-col justify-between selection:bg-slate-900 selection:text-white">

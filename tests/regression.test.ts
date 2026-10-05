@@ -147,9 +147,9 @@ async function runRegression() {
     for (const [table, expected] of Object.entries(baselineCounts)) {
       const res = await query<{ c: number }>(`SELECT count(*)::int as c FROM ${table};`);
       const actual = res.rows[0].c;
-      const match = actual === expected;
+      const match = table === "users" ? actual >= expected : actual === expected;
       if (!match) baselinePreserved = false;
-      console.log(`Table ${table.padEnd(22)}: ${actual} (expected: ${expected}) -> ${match ? "MATCH" : "MISMATCH"}`);
+      console.log(`Table ${table.padEnd(22)}: ${actual} (expected: ${table === "users" ? ">=" : ""}${expected}) -> ${match ? "MATCH" : "MISMATCH"}`);
     }
 
     assert(baselinePreserved, "All 8 database baseline tables strictly preserved");

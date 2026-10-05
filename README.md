@@ -75,36 +75,65 @@ The project is structured into three major development stages:
   - **Actionable Remediation**: Specific civil engineering corrective actions and evidence traces generated for every failure or warning.
   - **RBAC & Public Privacy**: Protected endpoint `/api/buildings/[id]/construction-rules` accessible strictly to `admin`, `engineer`, and `owner`. Access denied to `public` role to protect sensitive structural vulnerability data.
 
+### Stage 4 — Central Building Record Architecture & National Showcase `[COMPLETED & VERIFIED]`
+- **Objective**: Establish a single source of civil truth with cadastral GIS mapping, drawings revision ledger, statutory NOC tracking, simulated identity sandbox, and append-only audit logs.
+- **Implemented Capabilities**:
+  - **Cadastral GIS & Site Boundary**: Coordinates, plot & survey numbers, OpenStreetMap geocoding, and cadastral parcel polygon metadata.
+  - **Drawings & Blueprints Architecture**: Discipline filters (Architectural, Structural, MEP, Fire, As-Built), auto-incrementing revision codes (`R0`, `R1`...), and approval status state machines (`SUBMITTED`, `UNDER_REVIEW`, `APPROVED`, `SUPERSEDED`).
+  - **Statutory Approvals & NOCs**: Lifecycle tracking for Building Permissions, Fire Service NOCs, Structural Stability Certificates, and Environmental Clearances.
+  - **Owner Identity Verification Sandbox**: Privacy-first simulated e-KYC and DigiLocker property verification gateway displaying masked identifiers (`XXXX-XXXX-8983`) with explicit sandbox disclaimers.
+  - **Append-Only Civil Audit Trail**: Chronological immutable action ledger logging all administrative modifications and approvals.
+  - **End-to-End Browser QA**: 40 automated Playwright tests verifying Desktop and Mobile journeys with zero test failures.
+
 ---
 
 ## 📁 Project Structure
 
 ```text
 Building passport/
-├── public/                    # Static assets & favicons
+├── public/                    # Static assets, branding logos & favicons
+├── e2e/                       # Playwright End-to-End browser test suites
+│   ├── auth.spec.ts           # Authentication, validation, and session tests
+│   ├── building-passport.spec.ts # Central Record, GIS, Drawings, Approvals, Audit
+│   ├── homepage.spec.ts       # Branding, navigation, and layout tests
+│   ├── public-passport.spec.ts# Public QR and strict privacy redaction tests
+│   └── rbac.spec.ts           # Role-based access control and endpoint tests
 ├── src/
-│   ├── app/
-│   │   ├── globals.css        # Global CSS, theme variables, blueprint grids & Tailwind directives
-│   │   ├── layout.tsx         # Root layout with Geist fonts & SEO metadata
-│   │   └── page.tsx           # Main homepage entry point assembling all sections
-│   └── components/
-│       ├── Navbar.tsx             # Sticky header, brand identity & mobile drawer
-│       ├── Hero.tsx               # Title, narrative, CTAs & 3-node system architecture diagram
-│       ├── WhatIsPassport.tsx     # Concept analogy matrix & 8 data scope modules
-│       ├── WhyPassport.tsx        # Traditional vs. Building Passport comparison
-│       ├── HowItWorks.tsx         # 7-phase operational workflow stepper
-│       ├── BuildingLifecycle.tsx  # Decadal lifecycle timeline
-│       ├── ExamplePassportCard.tsx# Interactive mockup passport (BP-2026-00125 Green Heights)
-│       ├── FeaturesSection.tsx    # 8 platform capability cards
-│       ├── AIFutureSection.tsx    # Stage 3 AI health engine preview
-│       ├── CTASection.tsx         # High-impact minimal conversion section
-│       └── Footer.tsx             # System architecture specs & navigation links
-├── next.config.mjs            # Next.js configuration
+│   ├── app/                   # Next.js App Router (pages and API routes)
+│   ├── components/            # UI components and Central Record sections
+│   │   ├── brand/             # BuildingPassportLogo brand component
+│   │   └── central-record/    # GIS, Drawings, Approvals, Identity, Audit sections
+│   ├── context/               # React Context providers (AuthContext)
+│   ├── lib/                   # Utility libraries, auth helpers, construction rules
+│   ├── server/                # Express backend, domain services, and PostgreSQL db
+│   └── types/                 # Civil engineering TypeScript domain models
+├── tests/                     # Automated unit and integration test suites
+├── next.config.mjs            # Next.js configuration and API proxy rewrites
 ├── tailwind.config.ts         # Tailwind CSS content paths & theme extensions
-├── postcss.config.mjs         # PostCSS configuration with Tailwind CSS & Autoprefixer
 ├── tsconfig.json              # TypeScript compiler settings
-├── prompt.txt                 # Master project specification prompt
-└── package.json               # Project dependencies & scripts
+└── package.json               # Project dependencies and test scripts
+```
+
+---
+
+## 🏗️ Production Architecture
+
+```text
+Browser Client (Desktop / Mobile)
+        │
+        ▼
+Vercel Edge Network (Next.js 16 Frontend)
+  https://mdm-building-passport.vercel.app
+        │  (Reverse Proxy / API Rewrites)
+        ▼
+Cloudflare Encrypted Tunnel
+        │
+        ▼
+Debian 13 Linux Host (surya-server)
+  ├── Express.js Civil Backend (127.0.0.1:5000, systemd service)
+  ├── PostgreSQL 17 Database (127.0.0.1:5432, relational schema)
+  ├── Persistent Document Storage (/srv/storage/building-passport/)
+  └── Transactional Email Service (Gmail SMTP Provider)
 ```
 
 ---
@@ -116,8 +145,10 @@ Building passport/
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
 - **Styling**: [Tailwind CSS v3](https://tailwindcss.com/) + PostCSS + Autoprefixer
 - **Icons**: [Lucide React](https://lucide.dev/)
-- **Backend**: Node.js + Express.js (`src/server/express/`) & Next.js App Router API Routes (`src/app/api/`)
-- **Primary Database**: PostgreSQL 17 (`pg` connection pool with relational persistence across 8 civil tables)
+- **Backend Service**: Node.js + Express.js (`src/server/express/server.ts`) & Next.js App Router API Routes (`src/app/api/`)
+- **Primary Database**: PostgreSQL 17 (`pg` connection pool with strict relational schema)
+- **Email Delivery**: Dedicated Gmail SMTP Transactional Email Provider
+- **End-to-End Testing**: [Playwright](https://playwright.dev/) (Desktop Chrome & Mobile Chrome)
 - **Compliance Engine**: Pure deterministic civil rules evaluator (`construction-rules-v1.0`)
 
 ---
@@ -141,40 +172,46 @@ Building passport/
    npm install
    ```
 
-3. **Run the local development server**:
+3. **Run the local development servers**:
    ```bash
+   # Terminal 1: Frontend Dev Server (port 3000)
    npm run dev
+
+   # Terminal 2: Backend API Service (port 5000)
+   npm run server
    ```
 
 4. **View in Browser**:
-   Open [http://localhost:3000](http://localhost:3000) to view the live application.
+   Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 ### Available Scripts
 
 - `npm run dev`: Starts the Next.js development server on port 3000 (front-end + App Router API routes).
-- `npm run server`: Starts the standalone Express.js civil backend API on port 5000 (`http://localhost:5000`).
-- `npm run build`: Compiles the optimized Next.js production build and typechecks all routes.
-- `npm start`: Starts the Next.js production server.
-- `npm run lint`: Runs ESLint checks across the codebase.
+- `npm run server`: Starts the standalone Express.js backend API on port 5000 (`http://localhost:5000`).
+- `npm run build`: Compiles the optimized Next.js production build (28 static & dynamic routes).
+- `npm run lint`: Runs ESLint validation across the codebase.
+- `npx playwright test`: Runs the 40-test browser E2E suite across Desktop and Mobile viewports.
+- `npx tsx tests/central_record.test.ts`: Runs Central Record architecture tests (10 tests).
+- `npx tsx tests/phase23_auth.test.ts`: Runs authentication and RBAC verification test suite (46 tests).
 - `npx tsx tests/phase3_construction_rules.test.ts`: Runs the Phase 3 Construction Rules & Compliance Engine test suite (56 tests).
 - `npx tsx tests/regression.test.ts`: Runs database integrity & regression test suite (30 tests).
-- `npx tsx tests/phase23_auth.test.ts`: Runs authentication and RBAC verification test suite (46 tests).
+- `npx tsx tests/email_verification.test.ts`: Runs transactional email verification tests (27 tests).
 
 ---
 
-### 🔑 Test & Demo Credentials
+### 🔑 Test & Demo Profiles
 
-Four pre-configured role profiles are accessible via 1-click test buttons on `/login` or manual entry:
+Pre-configured role profiles are available via 1-click quick demo buttons on `/login` or through credentials configured in your environment:
 
-| Role | Email | Password | Permissions |
+| Role | Profile Identifier | Description | Capabilities |
 | :--- | :--- | :--- | :--- |
-| **Municipal Administrator** | `admin@civic.gov.in` | `Admin@2026!` | Full oversight, building registration, inspections, defects, maintenance, blueprints |
-| **Structural Engineer** | `engineer@cpwd.gov.in` | `Engineer@2026!` | Log certified inspections, record defects, update defect remediation status |
-| **Property Owner** | `owner@apexresidences.in` | `Owner@2026!` | Register building assets, record maintenance expenditure & contractor receipts |
-| **Public Verifier** | `public@citizen.in` | `Public@2026!` | View public civil passports, QR scanning (sanitized private data) |
+| **Municipal Administrator** | `admin@buildingpassport.org` | Chief Municipal Engineer | Full system oversight, building registration, drawings approval, statutory NOCs, and system audit logs |
+| **Structural Engineer** | `engineer@buildingpassport.org` | Licensed Structural Auditor | Inspections certification, drawing revision registration, defect logging, and remediation tracking |
+| **Property Owner** | `owner@buildingpassport.org` | Title Holder / Facility Manager | Asset management, maintenance logging, document uploads, and identity sandbox verification |
+| **Public Citizen** | Unauthenticated | Citizen / Tenant / Buyer | Read-only access to sanitized public building passports via QR codes without authentication |
 
 ---
 
 ## 📜 Standards & Compliance
 
-Designed to align with **ISO 19650** civil building information modeling (BIM) data retention guidelines and digital twin identity standards.
+Designed to align with **ISO 19650** civil building information modeling (BIM) data retention guidelines and digital building logbook standards.
