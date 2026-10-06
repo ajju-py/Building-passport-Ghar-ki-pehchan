@@ -120,6 +120,38 @@ test.describe('Role-Based Access Control (RBAC) & Endpoint Authorization QA', ()
     // Registration form is now accessible
     await expect(page.locator('h1:has-text("Register New Building Passport")')).toBeVisible();
     await expect(page.locator('input[name="name"]')).toBeVisible();
+    await expect(page.locator('select[name="usage"]')).toBeVisible();
+    await expect(page.locator('select[name="usage"]')).toHaveAttribute('required', '');
+    await expect(page.locator('select[name="usage"]')).toHaveValue('');
+
+    // Verify Load Sample Demo Details populates usage classification
+    await page.click('button:has-text("Load Sample Demo Details")');
+    await expect(page.locator('select[name="usage"]')).toHaveValue('Commercial');
+
+    // Intercept outgoing POST /api/buildings request to verify payload contract
+    let capturedPayload: Record<string, unknown> | null = null;
+    await page.route('**/api/buildings', async (route) => {
+      const request = route.request();
+      if (request.method() === 'POST') {
+        capturedPayload = JSON.parse(request.postData() || '{}');
+        await route.fulfill({
+          status: 201,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            data: { id: 'bld_mock_test_usage', name: capturedPayload?.name },
+          }),
+        });
+      } else {
+        await route.continue();
+      }
+    });
+
+    // Submit form and verify payload contains usage: "Commercial"
+    await page.click('button[type="submit"]');
+    expect(capturedPayload).not.toBeNull();
+    const submittedUsage = capturedPayload ? (capturedPayload as { usage?: string }).usage : undefined;
+    expect(submittedUsage).toBe('Commercial');
   });
 
   test('Authenticated user with unauthorized role receives clean 403 state on /buildings/new', async ({ page }) => {

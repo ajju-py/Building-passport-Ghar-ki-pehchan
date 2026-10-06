@@ -74,7 +74,7 @@ export default function NewBuildingPage() {
     totalArea: "120,000 sq.ft",
     floors: 10,
     units: 45,
-    usage: "Commercial Offices & Retail",
+    usage: "Commercial",
     description: "Grade-A commercial high-rise facility registered under Civil Digital Identity program.",
     frameType: "Reinforced Concrete Moment Resisting Frame (RCC)",
     foundation: "Cast-in-situ Friction Piles with Mat Cap",
@@ -107,6 +107,13 @@ export default function NewBuildingPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    // Browser-side validation for required usage classification
+    if (formData.usage.trim().length < 2) {
+      setError("Usage classification is required.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -424,6 +431,27 @@ export default function NewBuildingPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+              <div className="sm:col-span-3">
+                <label className="block font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Usage Classification *
+                </label>
+                <select
+                  name="usage"
+                  required
+                  value={formData.usage}
+                  onChange={handleChange}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-md focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900 text-slate-900 font-mono font-medium"
+                >
+                  <option value="">Select Usage Classification...</option>
+                  <option value="Residential">Residential</option>
+                  <option value="Commercial">Commercial</option>
+                  <option value="Mixed-Use">Mixed-Use</option>
+                  <option value="Institutional / Public">Institutional / Public</option>
+                  <option value="Industrial">Industrial</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
               <div>
                 <label className="block font-semibold text-slate-700 uppercase tracking-wider mb-1">
                   Total Built-up Area *
